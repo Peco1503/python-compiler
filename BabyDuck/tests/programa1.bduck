@@ -4,10 +4,7 @@ var
 
 void imprimirFactorial();
 {
-  print("El factorial de ");
-  print(n);
-  print(" es: ");
-  print(factorial);
+    print("El factorial de ", n, " es: ", factorial);
 }
 ;
 

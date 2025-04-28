@@ -1,4 +1,4 @@
-# Generated from ./src/BabyDuck.g4 by ANTLR 4.13.1
+# Generated from src/BabyDuck.g4 by ANTLR 4.13.1
 from antlr4 import *
 if "." in __name__:
     from .BabyDuckParser import BabyDuckParser
@@ -86,6 +86,16 @@ class BabyDuckVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by BabyDuckParser#print.
     def visitPrint(self, ctx:BabyDuckParser.PrintContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by BabyDuckParser#printableList.
+    def visitPrintableList(self, ctx:BabyDuckParser.PrintableListContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by BabyDuckParser#printable.
+    def visitPrintable(self, ctx:BabyDuckParser.PrintableContext):
         return self.visitChildren(ctx)
 
 

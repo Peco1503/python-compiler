@@ -29,9 +29,9 @@ MULT : '*';
 DIV : '/';
 LT : '<';
 GT : '>';
-LE : '<=';  // Agregado operador menor o igual
-GE : '>=';  // Agregado operador mayor o igual
-EQ : '==';  // Agregado operador de igualdad
+LE : '<=';  // Operador menor o igual
+GE : '>=';  // Operador mayor o igual
+EQ : '==';  // Operador de igualdad
 NE : '!=';
 EQUAL : '=';
 
@@ -129,10 +129,20 @@ cte
     | CTE_FLOAT
     ;
 
-// <Print> -> "print" "(" <EXP_LIST> ")" ";"
-// | "print" "(" <cte_string> ")" ";"
+// <Print> -> "print" "(" <printable_list> ")" ";"
 print
-    : PRINT LPAREN (CTE_STRING | expresion) RPAREN SEMICOLON
+    : PRINT LPAREN printableList RPAREN SEMICOLON
+    ;
+
+// Lista de elementos imprimibles
+printableList
+    : printable (COMMA printable)*
+    ;
+
+// Elemento imprimible: una expresión o una cadena
+printable
+    : expresion
+    | CTE_STRING
     ;
 
 // <CONDITION> -> "if" "(" <EXPRESION> ")" <Body> ";"

@@ -1,4 +1,4 @@
-# Generated from ./src/BabyDuck.g4 by ANTLR 4.13.1
+# Generated from src/BabyDuck.g4 by ANTLR 4.13.1
 from antlr4 import *
 if "." in __name__:
     from .BabyDuckParser import BabyDuckParser
@@ -149,6 +149,24 @@ class BabyDuckListener(ParseTreeListener):
 
     # Exit a parse tree produced by BabyDuckParser#print.
     def exitPrint(self, ctx:BabyDuckParser.PrintContext):
+        pass
+
+
+    # Enter a parse tree produced by BabyDuckParser#printableList.
+    def enterPrintableList(self, ctx:BabyDuckParser.PrintableListContext):
+        pass
+
+    # Exit a parse tree produced by BabyDuckParser#printableList.
+    def exitPrintableList(self, ctx:BabyDuckParser.PrintableListContext):
+        pass
+
+
+    # Enter a parse tree produced by BabyDuckParser#printable.
+    def enterPrintable(self, ctx:BabyDuckParser.PrintableContext):
+        pass
+
+    # Exit a parse tree produced by BabyDuckParser#printable.
+    def exitPrintable(self, ctx:BabyDuckParser.PrintableContext):
         pass
 
 
