@@ -1,7 +1,6 @@
 grammar BabyDuck;
 
 // Reglas léxicas (tokens)
-// Basadas en las expresiones regulares del documento
 PROGRAM : 'program';
 MAIN : 'main';
 END : 'end';
@@ -15,7 +14,7 @@ INT : 'int';
 FLOAT : 'float';
 VAR : 'var';
 
-// Identificadores (basados en la expresión regular [a-zA-Z_][a-zA-Z0-9_]*)
+// Identificadores
 ID : [a-zA-Z][a-zA-Z0-9_]*;
 
 // Constantes numéricas
@@ -30,6 +29,9 @@ MULT : '*';
 DIV : '/';
 LT : '<';
 GT : '>';
+LE : '<=';  // Agregado operador menor o igual
+GE : '>=';  // Agregado operador mayor o igual
+EQ : '==';  // Agregado operador de igualdad
 NE : '!=';
 EQUAL : '=';
 
@@ -46,7 +48,7 @@ COMMA : ',';
 WS : [ \t\r\n]+ -> skip;
 COMMENT : '//' ~[\r\n]* -> skip;
 
-// Reglas sintácticas basadas en la gramática definida en el documento
+// Reglas sintácticas
 // <Programa> -> "program" id ";" <VARS> <FUNCS> "main" <Body> "end"
 programa 
     : PROGRAM ID SEMICOLON vars? funcs? MAIN body END
@@ -61,7 +63,6 @@ type
 // <VARS> -> <VAR_DEC_LIST> | ε
 // <VAR_DEC_LIST> -> <VAR_DEC> | <VAR_DEC_LIST> <VAR_DEC>
 // <VAR_DEC> -> "var" <ID-LIST> ":" <TYPE> ";"
-// <ID-LIST> -> id | <ID-LIST> "," id
 vars
     : VAR varDecList
     ;
@@ -104,33 +105,22 @@ assign
 
 // <EXPRESION> -> <EXP> | <EXP> ">" <EXP> | <EXP> "<" <EXP> | <EXP> "!=" <EXP>
 expresion
-    : exp 
-    | exp GT exp 
-    | exp LT exp 
-    | exp NE exp
+    : exp ((GT | LT | NE | LE | GE | EQ) exp)?
     ;
 
 // <EXP> -> <TERMINO> | <TERMINO> "+" <EXP> | <TERMINO> "-" <EXP>
 exp
-    : termino
-    | termino PLUS exp
-    | termino MINUS exp
+    : termino ((PLUS | MINUS) termino)*
     ;
 
 // <TERMINO> -> <FACTOR> | <FACTOR> "*" <TERMINO> | <FACTOR> "/" <TERMINO>
 termino
-    : factor
-    | factor MULT termino
-    | factor DIV termino
+    : factor ((MULT | DIV) factor)*
     ;
 
 // <FACTOR> -> "(" <EXPRESION> ")" | "+" <FACTOR> | "-" <FACTOR> | id | <CTE>
 factor
-    : LPAREN expresion RPAREN
-    | PLUS factor
-    | MINUS factor
-    | ID
-    | cte
+    : (PLUS | MINUS)? (LPAREN expresion RPAREN | ID | cte)
     ;
 
 // <CTE> -> "cte_int" | "cte_float"
@@ -142,21 +132,13 @@ cte
 // <Print> -> "print" "(" <EXP_LIST> ")" ";"
 // | "print" "(" <cte_string> ")" ";"
 print
-    : PRINT LPAREN expList RPAREN SEMICOLON
-    | PRINT LPAREN CTE_STRING RPAREN SEMICOLON
-    ;
-
-// <EXP_LIST> -> <EXPRESION> | <EXP_LIST> "," <EXPRESION>
-expList
-    : expresion
-    | expList COMMA expresion
+    : PRINT LPAREN (CTE_STRING | expresion) RPAREN SEMICOLON
     ;
 
 // <CONDITION> -> "if" "(" <EXPRESION> ")" <Body> ";"
 // | "if" "(" <EXPRESION> ")" <Body> "else" <Body> ";"
 condition
-    : IF LPAREN expresion RPAREN body SEMICOLON
-    | IF LPAREN expresion RPAREN body ELSE body SEMICOLON
+    : IF LPAREN expresion RPAREN body (ELSE body)? SEMICOLON
     ;
 
 // <CYCLE> -> "while" "(" <EXPRESION> ")" "do" <CUERPO> ";"
@@ -169,15 +151,11 @@ cycle
 // <FUNC_LIST> -> <FUNC_DEC> | <FUNC_LIST> <FUNC_DEC>
 // <FUNC_DEC> -> "void" id "(" <PARAM_LIST> ")" ";" <VARS> <Body> ";" ";"
 funcs
-    : funcList?
-    ;
-
-funcList
     : funcDec+
     ;
 
 funcDec
-    : VOID ID LPAREN paramList? RPAREN SEMICOLON vars? body SEMICOLON SEMICOLON
+    : VOID ID LPAREN paramList? RPAREN SEMICOLON vars? body SEMICOLON
     ;
 
 // <PARAM_LIST> -> <PARAM> | <PARAM_LIST> "," <PARAM> | ε

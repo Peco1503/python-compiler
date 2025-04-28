@@ -89,11 +89,6 @@ class BabyDuckVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by BabyDuckParser#expList.
-    def visitExpList(self, ctx:BabyDuckParser.ExpListContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by BabyDuckParser#condition.
     def visitCondition(self, ctx:BabyDuckParser.ConditionContext):
         return self.visitChildren(ctx)
@@ -106,11 +101,6 @@ class BabyDuckVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by BabyDuckParser#funcs.
     def visitFuncs(self, ctx:BabyDuckParser.FuncsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by BabyDuckParser#funcList.
-    def visitFuncList(self, ctx:BabyDuckParser.FuncListContext):
         return self.visitChildren(ctx)
 
 

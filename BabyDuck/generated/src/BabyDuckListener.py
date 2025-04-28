@@ -152,15 +152,6 @@ class BabyDuckListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by BabyDuckParser#expList.
-    def enterExpList(self, ctx:BabyDuckParser.ExpListContext):
-        pass
-
-    # Exit a parse tree produced by BabyDuckParser#expList.
-    def exitExpList(self, ctx:BabyDuckParser.ExpListContext):
-        pass
-
-
     # Enter a parse tree produced by BabyDuckParser#condition.
     def enterCondition(self, ctx:BabyDuckParser.ConditionContext):
         pass
@@ -185,15 +176,6 @@ class BabyDuckListener(ParseTreeListener):
 
     # Exit a parse tree produced by BabyDuckParser#funcs.
     def exitFuncs(self, ctx:BabyDuckParser.FuncsContext):
-        pass
-
-
-    # Enter a parse tree produced by BabyDuckParser#funcList.
-    def enterFuncList(self, ctx:BabyDuckParser.FuncListContext):
-        pass
-
-    # Exit a parse tree produced by BabyDuckParser#funcList.
-    def exitFuncList(self, ctx:BabyDuckParser.FuncListContext):
         pass
 
 
