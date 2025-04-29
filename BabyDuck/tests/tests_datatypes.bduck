@@ -1,0 +1,80 @@
+program TestDatatypes;
+var
+  int1, int2, int_result: int;
+  float1, float2, float_result: float;
+
+void printResults();
+{
+  print("=== Resultados con enteros ===");
+  print("int1 = ", int1);
+  print("int2 = ", int2);
+  print("Suma: ", int1 + int2);
+  print("Resta: ", int1 - int2);
+  print("Multiplicacion: ", int1 * int2);
+  print("Division: ", int1 / int2);
+  
+  print("=== Resultados con flotantes ===");
+  print("float1 = ", float1);
+  print("float2 = ", float2);
+  print("Suma: ", float1 + float2);
+  print("Resta: ", float1 - float2);
+  print("Multiplicacion: ", float1 * float2);
+  print("Division: ", float1 / float2);
+  
+  print("=== Operaciones mixtas ===");
+  print("int1 + float1 = ", int1 + float1);
+  print("float2 * int2 = ", float2 * int2);
+  print("float1 / int1 = ", float1 / int1);
+}
+;
+
+main
+{
+  // Inicialización de variables enteras
+  int1 = 10;
+  int2 = 3;
+  
+  // Inicialización de variables flotantes
+  float1 = 10.5;
+  float2 = 2.5;
+  
+  // Operaciones con enteros
+  int_result = int1 + int2;
+  print("Suma de enteros: ", int_result);
+  
+  int_result = int1 - int2;
+  print("Resta de enteros: ", int_result);
+  
+  int_result = int1 * int2;
+  print("Multiplicacion de enteros: ", int_result);
+  
+  int_result = int1 / int2;
+  print("Division de enteros: ", int_result);
+  
+  // Operaciones con flotantes
+  float_result = float1 + float2;
+  print("Suma de flotantes: ", float_result);
+  
+  float_result = float1 - float2;
+  print("Resta de flotantes: ", float_result);
+  
+  float_result = float1 * float2;
+  print("Multiplicacion de flotantes: ", float_result);
+  
+  float_result = float1 / float2;
+  print("Division de flotantes: ", float_result);
+  
+  // Valores extremos
+  int_result = 2147483647; // Valor máximo para int en muchos sistemas
+  print("Valor maximo de int: ", int_result);
+  
+  float_result = 3.4028235+38; // Valor grande para float
+  print("Valor grande de float: ", float_result);
+  
+  float_result = 1.17549-38; // Valor pequeño para float
+  print("Valor pequeño de float: ", float_result);
+  
+  // Llamada a la función que imprime resultados
+  printResults();
+}
+end
