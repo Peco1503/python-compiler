@@ -5,8 +5,7 @@ var
   // Variables para fibonacci
   fib1, fib2, temp, i, n: int;
 
-void printValues();
-{
+void printValues(){
   print("Valores actuales:");
   print("a = ", a);
   print("b = ", b);
@@ -14,21 +13,17 @@ void printValues();
   print("x = ", x);
   print("y = ", y);
   print("z = ", z);
-}
-;
+};
 
-void calculate();
-{
+void calculate(){
   result = a * b + c;
   float_result = x * y + z;
   
   print("Resultado entero: ", result);
   print("Resultado flotante: ", float_result);
-}
-;
+};
 
-void multiplyBy2();
-{
+void multiplyBy2(){
   a = a * 2;
   b = b * 2;
   c = c * 2;
@@ -38,11 +33,9 @@ void multiplyBy2();
   
   print("Valores multiplicados por 2:");
   printValues();
-}
-;
+};
 
-void divideBy2();
-{
+void divideBy2(){
   a = a / 2;
   b = b / 2;
   c = c / 2;
@@ -52,11 +45,9 @@ void divideBy2();
   
   print("Valores divididos por 2:");
   printValues();
-}
-;
+};
 
-void fibonacci();
-{
+void fibonacci(){
   n = 10; // Calculará los primeros 10 números de Fibonacci
   fib1 = 0;
   fib2 = 1;
@@ -73,18 +64,14 @@ void fibonacci();
     fib2 = temp;
     i = i + 1;
   };
-}
-;
+};
 
-void callAnotherFunction();
-{
+void callAnotherFunction(){
   print("Llamando a otra función desde una función:");
   calculate();
-}
-;
+};
 
-void recursiveCountdown();
-{
+void recursiveCountdown(){
   a = a - 1;
   print("Contando hacia atrás: ", a);
   
@@ -93,8 +80,7 @@ void recursiveCountdown();
   } else {
     print("¡Cuenta regresiva terminada!");
   };
-}
-;
+};
 
 main
 {
