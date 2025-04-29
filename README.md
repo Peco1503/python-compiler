@@ -121,9 +121,6 @@ El lenguaje BabyDuck es un lenguaje de programación simple con la siguiente sin
   nombre;
   ```
 
-## Contribuir
-
-Si deseas contribuir a este proyecto, no dudes en crear un fork y enviar tus pull requests.
 
 ## Licencia
 
