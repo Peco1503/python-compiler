@@ -3,8 +3,7 @@ var
   a, b, c, d, result: int;
   x, y, z, w, float_result: float;
 
-void printExpressionResults();
-{
+void printExpressionResults(){
   print("=== Expresiones Aritmeticas Complejas ===");
   print("(a + b) * c - d = ", (a + b) * c - d);
   print("a + b * c - d = ", a + b * c - d);
@@ -20,11 +19,9 @@ void printExpressionResults();
   print("a + x * y / b = ", a + x * y / b);
   print("(a + x) * (y / b) = ", (a + x) * (y / b));
   print("a * b / c + d = ", a * b / c + d);
-}
-;
+};
 
-void testComparisons();
-{
+void testComparisons(){
   print("=== Comparaciones Simples ===");
   print("a > b: ", a > b);
   print("a < b: ", a < b);
@@ -36,8 +33,7 @@ void testComparisons();
   print("a + b > c + d: ", a + b > c + d);
   print("a * b < c * d: ", a * b < c * d);
   print("(a + b) * c != (d + a) * b: ", (a + b) * c != (d + a) * b);
-}
-;
+};
 
 main
 {
