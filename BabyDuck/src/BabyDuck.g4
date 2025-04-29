@@ -165,7 +165,7 @@ funcs
     ;
 
 funcDec
-    : VOID ID LPAREN paramList? RPAREN SEMICOLON vars? body SEMICOLON
+    : VOID ID LPAREN paramList? RPAREN vars? body SEMICOLON
     ;
 
 // <PARAM_LIST> -> <PARAM> | <PARAM_LIST> "," <PARAM> | ε
