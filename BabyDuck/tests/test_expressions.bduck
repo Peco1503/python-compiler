@@ -1,0 +1,112 @@
+program TestExpressions;
+var
+  a, b, c, d, result: int;
+  x, y, z, w, float_result: float;
+
+void printExpressionResults();
+{
+  print("=== Expresiones Aritmeticas Complejas ===");
+  print("(a + b) * c - d = ", (a + b) * c - d);
+  print("a + b * c - d = ", a + b * c - d);
+  print("(a + b) * (c - d) = ", (a + b) * (c - d));
+  print("a * b + c * d = ", a * b + c * d);
+  
+  print("=== Expresiones con Operadores Unarios ===");
+  print("+a = ", +a);
+  print("-a = ", -a);
+  print("-(a + b) = ", -(a + b));
+  
+  print("=== Expresiones Mixtas Complejas ===");
+  print("a + x * y / b = ", a + x * y / b);
+  print("(a + x) * (y / b) = ", (a + x) * (y / b));
+  print("a * b / c + d = ", a * b / c + d);
+}
+;
+
+void testComparisons();
+{
+  print("=== Comparaciones Simples ===");
+  print("a > b: ", a > b);
+  print("a < b: ", a < b);
+  print("a != b: ", a != b);
+  print("a <= b: ", a <= b);
+  print("a >= b: ", a >= b);
+  
+  print("=== Comparaciones Complejas ===");
+  print("a + b > c + d: ", a + b > c + d);
+  print("a * b < c * d: ", a * b < c * d);
+  print("(a + b) * c != (d + a) * b: ", (a + b) * c != (d + a) * b);
+}
+;
+
+main
+{
+  // Inicialización de variables
+  a = 5;
+  b = 3;
+  c = 7;
+  d = 2;
+  
+  x = 5.5;
+  y = 2.5;
+  z = 3.3;
+  w = 1.1;
+  
+  // Expresiones aritméticas complejas
+  result = (a + b) * c;
+  print("(a + b) * c = ", result);
+  
+  result = a + (b * c);
+  print("a + (b * c) = ", result);
+  
+  result = (a + b) * (c - d);
+  print("(a + b) * (c - d) = ", result);
+  
+  result = a * b + c * d;
+  print("a * b + c * d = ", result);
+  
+  // Expresiones con operadores unarios
+  result = -a;
+  print("-a = ", result);
+  
+  result = -(a + b);
+  print("-(a + b) = ", result);
+  
+  // Expresiones mixtas
+  float_result = a + x * y;
+  print("a + x * y = ", float_result);
+  
+  float_result = (a + x) * (y - b);
+  print("(a + x) * (y - b) = ", float_result);
+  
+  // Expresiones complejas anidadas
+  result = ((a + b) * c - (d * a)) / b;
+  print("((a + b) * c - (d * a)) / b = ", result);
+  
+  float_result = ((x + y) * z - (w * x)) / y;
+  print("((x + y) * z - (w * x)) / y = ", float_result);
+  
+  // Prueba de expresiones de comparación
+  if (a > b) {
+    print("a es mayor que b");
+  } else {
+    print("a NO es mayor que b");
+  };
+  
+  if ((a + b) <= c) {
+    print("a + b es menor o igual que c");
+  } else {
+    print("a + b es mayor que c");
+  };
+  
+  if ((a * b) != (c - d)) {
+    print("a * b es diferente de c - d");
+  } else {
+    print("a * b es igual a c - d");
+  };
+  
+  // Llamada a funciones para más pruebas
+  printExpressionResults();
+  testComparisons();
+}
+end
