@@ -1,0 +1,118 @@
+// Este archivo contiene ejemplos de errores sintácticos que el compilador debería detectar.
+
+program TestErrors;
+var
+  a, b, c: int;
+  x, y, z: float;
+
+// Error 1: Función sin punto y coma al final
+void errorFunction1()
+{
+   print("Esta función no tiene punto y coma al final");
+}
+
+// Error 2: Falta paréntesis en declaración de función
+// void errorFunction2(;
+// {
+//   print("Falta un paréntesis");
+// }
+// ;
+
+// Error 3: Falta llave de cierre
+// void errorFunction3();
+// {
+//   print("Falta una llave de cierre");
+// ;
+
+// Error 4: Uso de variable no declarada
+void errorFunction4();
+{
+  // print("Usando variable no declarada: ", undeclared_var);
+}
+;
+
+// Error 5: Expresión incorrecta con operadores
+void errorFunction5();
+{
+  // a = b + + c; // Operadores duplicados
+  // a = (b * ); // Expresión incompleta
+}
+;
+
+// Error 6: Falta punto y coma después de statement
+void errorFunction6();
+{
+  // a = b + c // Falta punto y coma
+  // print("Hola")
+}
+;
+
+// Error 7: Llamada a función no declarada
+void errorFunction7();
+{
+  // nonExistentFunction();
+}
+;
+
+// Error 8: Uso incorrecto de palabras clave
+// void errorFunction8();
+// {
+//   if a > b { // Faltan paréntesis en el if
+//     print("a es mayor que b");
+//   };
+// }
+// ;
+
+// Error 9: Condición incorrecta
+// void errorFunction9();
+// {
+//   if () { // Condición vacía
+//     print("Condición vacía");
+//   };
+// }
+// ;
+
+// Error 10: Operación aritmética inválida
+void errorFunction10();
+{
+  // a = b / 0; // División por cero (error semántico)
+}
+;
+
+main
+{
+  a = 5;
+  b = 3;
+  c = 0;
+  
+  x = 2.5;
+  y = 1.5;
+  z = 0.0;
+  
+  // Descomentar para probar el error deseado
+  
+  // Error 11: Tipo incorrecto en asignación
+  // a = x; // int = float
+  
+  // Error 12: Operador de comparación incorrecto
+  // if (a === b) { // Triple igual no existe
+  //   print("a es igual a b");
+  // };
+  
+  // Error 13: Ciclo while sin do
+  // while (a > 0) { // Falta la palabra clave "do"
+  //   a = a - 1;
+  // };
+  
+  // Error 14: Llaves desequilibradas
+  // if (a > b) {
+  //   print("a es mayor que b");
+  // }; // Falta un corchete de cierre
+  
+  // Error 15: Sintaxis de print incorrecta
+  // print("Valor de a: " a); // Falta la coma
+  
+  // Error 16: Falta el 'end' al final del programa
+}
+// Descomentar para probar el error 16
+end

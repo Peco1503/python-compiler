@@ -1,0 +1,142 @@
+program TestFunctions;
+var
+  a, b, c, result: int;
+  x, y, z, float_result: float;
+  // Variables para fibonacci
+  fib1, fib2, temp, i, n: int;
+
+void printValues();
+{
+  print("Valores actuales:");
+  print("a = ", a);
+  print("b = ", b);
+  print("c = ", c);
+  print("x = ", x);
+  print("y = ", y);
+  print("z = ", z);
+}
+;
+
+void calculate();
+{
+  result = a * b + c;
+  float_result = x * y + z;
+  
+  print("Resultado entero: ", result);
+  print("Resultado flotante: ", float_result);
+}
+;
+
+void multiplyBy2();
+{
+  a = a * 2;
+  b = b * 2;
+  c = c * 2;
+  x = x * 2.0;
+  y = y * 2.0;
+  z = z * 2.0;
+  
+  print("Valores multiplicados por 2:");
+  printValues();
+}
+;
+
+void divideBy2();
+{
+  a = a / 2;
+  b = b / 2;
+  c = c / 2;
+  x = x / 2.0;
+  y = y / 2.0;
+  z = z / 2.0;
+  
+  print("Valores divididos por 2:");
+  printValues();
+}
+;
+
+void fibonacci();
+{
+  n = 10; // Calculará los primeros 10 números de Fibonacci
+  fib1 = 0;
+  fib2 = 1;
+  
+  print("Serie de Fibonacci:");
+  print(fib1);
+  print(fib2);
+  
+  i = 2;
+  while (i < n) do {
+    temp = fib1 + fib2;
+    print(temp);
+    fib1 = fib2;
+    fib2 = temp;
+    i = i + 1;
+  };
+}
+;
+
+void callAnotherFunction();
+{
+  print("Llamando a otra función desde una función:");
+  calculate();
+}
+;
+
+void recursiveCountdown();
+{
+  a = a - 1;
+  print("Contando hacia atrás: ", a);
+  
+  if (a > 0) {
+    recursiveCountdown();
+  } else {
+    print("¡Cuenta regresiva terminada!");
+  };
+}
+;
+
+main
+{
+  // Inicialización de variables
+  a = 5;
+  b = 7;
+  c = 3;
+  x = 5.5;
+  y = 2.5;
+  z = 1.5;
+  
+  // Prueba de llamada a función simple
+  print("--- Prueba 1: Función para imprimir valores ---");
+  printValues();
+  
+  // Prueba de función que realiza cálculos
+  print("--- Prueba 2: Función para realizar cálculos ---");
+  calculate();
+  
+  // Prueba de funciones que modifican variables globales
+  print("--- Prueba 3: Función que modifica variables ---");
+  multiplyBy2();
+  
+  // Prueba de función que llama a otra función
+  print("--- Prueba 4: Función que llama a otra función ---");
+  callAnotherFunction();
+  
+  // Prueba de función que usa variables "locales" (ahora globales)
+  print("--- Prueba 5: Función con variables ---");
+  fibonacci();
+  
+  // Prueba de más modificaciones a variables globales
+  print("--- Prueba 6: Más modificaciones de variables ---");
+  divideBy2();
+  
+  // Prueba de función recursiva (simulada)
+  print("--- Prueba 7: Simulación de recursividad ---");
+  a = 5; // Restablecer valor para la cuenta regresiva
+  recursiveCountdown();
+  
+  // Verificación final de variables
+  print("--- Estado final de las variables ---");
+  printValues();
+}
+end
