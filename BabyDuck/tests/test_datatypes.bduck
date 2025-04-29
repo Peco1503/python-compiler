@@ -3,8 +3,7 @@ var
   int1, int2, int_result: int;
   float1, float2, float_result: float;
 
-void printResults();
-{
+void printResults(){
   print("=== Resultados con enteros ===");
   print("int1 = ", int1);
   print("int2 = ", int2);
@@ -25,8 +24,7 @@ void printResults();
   print("int1 + float1 = ", int1 + float1);
   print("float2 * int2 = ", float2 * int2);
   print("float1 / int1 = ", float1 / int1);
-}
-;
+};
 
 main
 {
@@ -64,14 +62,14 @@ main
   float_result = float1 / float2;
   print("Division de flotantes: ", float_result);
   
-  // Valores extremos
+  // Valores extremos sin notación científica
   int_result = 2147483647; // Valor máximo para int en muchos sistemas
   print("Valor maximo de int: ", int_result);
   
-  float_result = 3.4028235+38; // Valor grande para float
+  float_result = 3402823.5; // Valor grande de float (sin notación científica)
   print("Valor grande de float: ", float_result);
   
-  float_result = 1.17549-38; // Valor pequeño para float
+  float_result = 0.00000117549; // Valor pequeño de float (sin notación científica)
   print("Valor pequeño de float: ", float_result);
   
   // Llamada a la función que imprime resultados
