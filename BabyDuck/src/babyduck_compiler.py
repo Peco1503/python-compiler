@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Compilador para el lenguaje BabyDuck
-Autor: Basado en el trabajo de Franco Enrique Lugo Meza A00833951
+
 """
 
 import sys
