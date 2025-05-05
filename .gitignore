@@ -1,6 +1,7 @@
 # Archivos generados
 /generated/
 *.jar
+.antlr
 
 # Archivos de Python
 __pycache__/
