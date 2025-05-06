@@ -1,0 +1,6 @@
+program NoDeclarado;
+main
+{
+  y = 10;  // Error: variable no declarada
+}
+end

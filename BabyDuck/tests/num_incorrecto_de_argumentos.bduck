@@ -1,0 +1,7 @@
+program ArgumentosIncorrectos;
+void funcion(x: int, y: float){};
+main
+{
+  funcion(10);  // Error: número incorrecto de argumentos
+}
+end

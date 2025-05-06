@@ -21,34 +21,29 @@ class SemanticAnalyzer(BabyDuckVisitor):
         self.errors.append(f"Error semántico en linea {line}:{column} - {message}")
 
     def visitPrograma(self, ctx: BabyDuckParser.ProgramaContext):
-        # Añadir el programa como una "funcion" global
+        # Añadir el programa como una "función" global
         program_name = ctx.ID().getText()
-        self.symb_table.add_function(program_name, Type.VOID)
-
-        # Añadir funcion main implicitamente
+        self.symbol_table.add_function(program_name, Type.VOID)
+        
+        # Añadir función main implícitamente
         self.symbol_table.add_function("main", Type.VOID)
-
+        
         # Visitar las declaraciones de variables y funciones
         if ctx.vars_():
             self.visit(ctx.vars_())
-
+            
         if ctx.funcs():
-            self.visit(ctx.funcs_())
-
-        # Cambiar a la funcion main para el cuerpo principal
+            self.visit(ctx.funcs())
+            
+        # Cambiar a la función main para el cuerpo principal
         self.symbol_table.current_function = "main"
-
+        
         # Visitar el cuerpo principal
         self.visit(ctx.body())
-
-        # Visitar el cuerpo principal
-        self.visit(ctx.body())
-
+        
         # Verificar que todas las funciones declaradas han sido utilizadas
-        for func_name in self.symbol_table.functions:
-            if not self.symbol_table.functions[func_name].used:
-                self.add_error(ctx, f"La función '{func_name}' no ha sido utilizada.")
-
+        # (esto se podría implementar si se desea)
+        
         return self.symbol_table
     
     def visitVars(self, ctx: BabyDuckParser.VarsContext):
@@ -83,45 +78,45 @@ class SemanticAnalyzer(BabyDuckVisitor):
         return None
     
     def visitFuncDec(self, ctx: BabyDuckParser.FuncDecContext):
-        # Obtenere el nombre de la funcion
+        # Obtener el nombre de la función
         func_name = ctx.ID().getText()
-
+        
         # Todas las funciones en BabyDuck son VOID
         func_type = Type.VOID
-
-        # Añadir la funcion al directorio
-        if not self.symbol_table.add_function(func_name, func_type):
-            self.add_error(ctx, f"Funcion '{func_name}' ya declarada.")
-            return None
         
-        # Processar parametros si ya existen
-        if ctx.params():
-            self.visit(ctx.params())
-
-        # Procesar variables locales si ya existen
+        # Añadir la función al directorio
+        if not self.symbol_table.add_function(func_name, func_type):
+            self.add_error(ctx, f"Función '{func_name}' ya declarada")
+            return None
+            
+        # Procesar parámetros si existen
+        if ctx.paramList():
+            self.visit(ctx.paramList())
+            
+        # Procesar variables locales si existen
         if ctx.vars_():
             self.visit(ctx.vars_())
-
-        # Procesar el cuerpo de la funcion
+            
+        # Procesar el cuerpo de la función
         self.visit(ctx.body())
-
+        
         return None
     
     def visitParamList(self, ctx: BabyDuckParser.ParamListContext):
-        # Visitar cad parametro
+        # Visitar cada parámetro
         for param_ctx in ctx.param():
             self.visit(param_ctx)
         return None
     
     def visitParam(self, ctx: BabyDuckParser.ParamContext):
-        # Obtener nombre y tipo del parametro
+        # Obtener nombre y tipo del parámetro
         param_name = ctx.ID().getText()
-        param_type = Type.INT if ctx.INT() else Type.FLOAT
-
-        # Añadir el parametro a la funcion actual
+        param_type = Type.INT if ctx.type_().INT() else Type.FLOAT
+        
+        # Añadir el parámetro a la función actual
         if not self.symbol_table.add_param(param_name, param_type):
-            self.add_error(ctx, f"El parametro '{param_name}' ya ha sido declarado.")
-
+            self.add_error(ctx, f"Parámetro '{param_name}' ya declarado en la función")
+            
         return None
     
     def visitAssign(self, ctx: BabyDuckParser.AssignContext):

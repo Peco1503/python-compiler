@@ -1,0 +1,8 @@
+program Duplicado;
+var
+  x: int;
+  x: float;  // Error: variable doblemente declarada
+main
+{
+}
+end

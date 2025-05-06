@@ -1,0 +1,9 @@
+program TipoIncompatible;
+var
+  x: int;
+  y: float;
+main
+{
+  x = y;  // Error: tipo incompatible en asignación
+}
+end

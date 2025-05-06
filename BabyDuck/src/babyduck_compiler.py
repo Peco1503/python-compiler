@@ -16,6 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'generated'))
 
 from BabyDuckLexer import BabyDuckLexer
 from BabyDuckParser import BabyDuckParser
+from semantic_analyzer import SemanticAnalyzer, SemanticError
 
 class SyntaxErrorListener(ErrorListener):
     """
@@ -90,6 +91,39 @@ def print_parse_tree(tree, parser, indent=0):
     for i in range(tree.getChildCount()):
         print_parse_tree(tree.getChild(i), parser, indent + 1)
 
+def print_symbol_table(symbol_table):
+    """
+    Imprime el directorio de funciones y las tablas de variables
+    """
+    print("\n=== DIRECTORIO DE FUNCIONES ===")
+    print(f"{'Nombre':<15} {'Tipo':<10} {'#Params':<10} {'#Vars':<10}")
+    print("-" * 50)
+
+    for func_name, func in symbol_table.functions.items():
+        print(f"{func_name:<15} {func.type.name:<10} {len(func.params):<10} {len(func.vars_table):<10}")
+
+    # Imprimir variables globales
+    print("\n=== VARIABLES GLOBALES ===")
+    if symbol_table.global_vars:
+        print(f"{'Nombre':<15} {'Tipo':<10}")
+        print("-" * 30)
+        for var_name, var in symbol_table.global_vars.items():
+            print(f"{var_name:<15} {var.type.name:<10}")
+    else:
+        print("No hay variables globales")
+    
+    # Imprimir variables de cada función
+    for func_name, func in symbol_table.functions.items():
+        print(f"\n=== VARIABLES DE '{func_name}' ===")
+        if func.vars_table:
+            print(f"{'Nombre':<15} {'Tipo':<10} {'Es Parámetro':<15}")
+            print("-" * 45)
+            for var_name, var in func.vars_table.items():
+                is_param = "Sí" if var_name in [p.name for p in func.params] else "No"
+                print(f"{var_name:<15} {var.type.name:<10} {is_param:<15}")
+        else:
+            print(f"La función '{func_name}' no tiene variables locales")
+
 def main(argv):
     # Verificar argumentos
     if len(argv) > 1:
@@ -134,6 +168,25 @@ def main(argv):
         # Mostrar el árbol sintáctico
         print("\n=== ÁRBOL SINTÁCTICO ===")
         print_parse_tree(tree, parser)
+
+        # Realizar análisis semántico
+        print("\n=== ANÁLISIS SEMÁNTICO ===")
+        semantic_analyzer = SemanticAnalyzer()
+        try:
+            symbol_table = semantic_analyzer.visit(tree)
+            
+            # Verificar si hubo errores semánticos
+            if semantic_analyzer.errors:
+                print("Errores semánticos encontrados:")
+                for error in semantic_analyzer.errors:
+                    print(f"  - {error}")
+            else:
+                print("Análisis semántico exitoso.")
+                
+                # Mostrar el directorio de funciones y tablas de variables
+                print_symbol_table(symbol_table)
+        except SemanticError as e:
+            print(f"Error semántico: {str(e)}")
         
     except ParseCancellationException as e:
         print(f"\nError de sintaxis: {str(e)}")

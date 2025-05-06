@@ -1,0 +1,6 @@
+program FuncionNoDeclarada;
+main
+{
+  funcionInexistente();  // Error: función no declarada
+}
+end
