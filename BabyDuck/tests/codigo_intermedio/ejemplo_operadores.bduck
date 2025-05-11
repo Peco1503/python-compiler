@@ -1,0 +1,23 @@
+program OperadoresSimples;
+var
+  a, b, resultado: int;
+
+main
+{
+  a = 10;
+  b = 2;
+  
+  // Suma
+  resultado = a + b;
+  print("a + b = ", resultado);
+  
+  // Resta
+  resultado = a - b;
+  print("a - b = ", resultado);
+  
+  // Multiplicación
+  resultado = a * b;
+  print("a * b = ", resultado);
+  
+}
+end

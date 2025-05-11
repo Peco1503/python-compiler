@@ -1,0 +1,14 @@
+program IfSimple;
+var
+  x, y: int;
+
+main
+{
+  x = 10;
+  y = 5;
+  
+  if (x > y) {
+    print("x es mayor que y");
+  };
+}
+end

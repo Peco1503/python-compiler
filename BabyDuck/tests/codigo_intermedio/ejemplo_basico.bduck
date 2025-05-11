@@ -1,0 +1,14 @@
+program EjemploBasico;
+var
+  x, y, z: int;
+  
+main
+{
+  // Operaciones aritméticas simples
+  x = 5;
+  y = 10;
+  z = x + y;
+  
+  print("El resultado de x + y es: ", z);
+}
+end

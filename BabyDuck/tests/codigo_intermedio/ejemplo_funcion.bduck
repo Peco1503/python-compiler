@@ -1,0 +1,14 @@
+program FuncionMuySimple;
+var
+  x, y: int;
+
+void mostrar(valor: int) {
+  print("El valor es: ", valor);
+};
+
+main
+{
+  x = 5;
+  mostrar(x);
+}
+end
