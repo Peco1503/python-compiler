@@ -45,7 +45,7 @@ def print_tokens(lexer):
     """
     print("\n=== ANÁLISIS LÉXICO (TOKENS) ===")
     
-    # Convertir los simbols a una lista para poder imprimirlos
+    # Convertir los symbolicNames a una lista para poder imprimirlos
     symbolicNames = lexer.symbolicNames
     
     tokens = []
@@ -124,6 +124,17 @@ def print_symbol_table(symbol_table):
         else:
             print(f"La función '{func_name}' no tiene variables locales")
 
+def print_quadruples(quadruples):
+    """
+    Imprime los cuádruplos generados
+    """
+    print("\n=== CÓDIGO INTERMEDIO (CUÁDRUPLOS) ===")
+    print(f"{'#':<4} {'Operador':<10} {'Operando1':<15} {'Operando2':<15} {'Resultado':<15}")
+    print("-" * 60)
+    
+    for i, quad in enumerate(quadruples):
+        print(f"{i:<4} {str(quad.operator):<10} {str(quad.left_operand) if quad.left_operand is not None else 'None':<15} {str(quad.right_operand) if quad.right_operand is not None else 'None':<15} {str(quad.result) if quad.result is not None else 'None':<15}")
+
 def main(argv):
     # Verificar argumentos
     if len(argv) > 1:
@@ -173,7 +184,14 @@ def main(argv):
         print("\n=== ANÁLISIS SEMÁNTICO ===")
         semantic_analyzer = SemanticAnalyzer()
         try:
-            symbol_table = semantic_analyzer.visit(tree)
+            result = semantic_analyzer.visit(tree)
+            
+            # Desempaquetar los resultados
+            if isinstance(result, tuple) and len(result) == 2:
+                symbol_table, quadruples = result
+            else:
+                symbol_table = result
+                quadruples = []
             
             # Verificar si hubo errores semánticos
             if semantic_analyzer.errors:
@@ -185,6 +203,13 @@ def main(argv):
                 
                 # Mostrar el directorio de funciones y tablas de variables
                 print_symbol_table(symbol_table)
+                
+                # Mostrar los cuádruplos generados
+                print_quadruples(quadruples)
+                
+                print(f"\nTotal de cuádruplos generados: {len(quadruples)}")
+                print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.temp_counter - 1}")
+                
         except SemanticError as e:
             print(f"Error semántico: {str(e)}")
         
