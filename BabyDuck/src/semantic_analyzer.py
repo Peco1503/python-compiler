@@ -3,7 +3,8 @@ from generated.src.BabyDuckParser import BabyDuckParser
 from generated.src.BabyDuckVisitor import BabyDuckVisitor
 from semantic_cube import get_result_type, INT, FLOAT, ERROR
 from symbol_table import SymbolTable, Type, Variable, Function
-from typing import Any, List, Dict
+from quad_generator import QuadrupleGenerator, OperatorType, Quadruple
+from typing import Any, List, Dict, Tuple
 
 class SemanticError(Exception):
     """Excepción para errores semánticos"""
@@ -13,6 +14,7 @@ class SemanticAnalyzer(BabyDuckVisitor):
     def __init__(self):
         self.symbol_table = SymbolTable()
         self.errors = []
+        self.quad_generator = QuadrupleGenerator()  # Generador de cuádruplos
 
     def add_error(self, ctx, message):
         """Añade un error semántico"""
@@ -44,7 +46,8 @@ class SemanticAnalyzer(BabyDuckVisitor):
         # Verificar que todas las funciones declaradas han sido utilizadas
         # (esto se podría implementar si se desea)
         
-        return self.symbol_table
+        # Retornar tanto la tabla de símbolos como los cuádruplos generados
+        return self.symbol_table, self.quad_generator.quadruples
     
     def visitVars(self, ctx: BabyDuckParser.VarsContext):
         # Visitar las declaraciones de variables
@@ -89,6 +92,10 @@ class SemanticAnalyzer(BabyDuckVisitor):
             self.add_error(ctx, f"Función '{func_name}' ya declarada")
             return None
             
+        # Guardar la dirección de inicio de la función
+        func_start = self.quad_generator.quad_counter
+        self.symbol_table.functions[func_name].start_address = func_start
+        
         # Procesar parámetros si existen
         if ctx.paramList():
             self.visit(ctx.paramList())
@@ -99,6 +106,9 @@ class SemanticAnalyzer(BabyDuckVisitor):
             
         # Procesar el cuerpo de la función
         self.visit(ctx.body())
+        
+        # Generar cuádruplo de fin de función
+        self.quad_generator.add_quadruple(OperatorType.ENDFUNC, None, None, None)
         
         return None
     
@@ -128,50 +138,67 @@ class SemanticAnalyzer(BabyDuckVisitor):
             self.add_error(ctx, f"Variable '{var_name}' no declarada.")
             return Type.ERROR
         
-        # Verifiar el tipo de la expresion
+        # Añadir la variable a la pila de operandos y tipos
+        self.quad_generator.operand_stack.append(var_name)
+        self.quad_generator.type_stack.append(var.type)
+        
+        # Añadir operador de asignación
+        self.quad_generator.operator_stack.append(OperatorType.ASSIGN)
+        
+        # Visitar la expresión
         expr_type = self.visit(ctx.expresion())
-
-        # Verificar compatbilidad de tipos en la asignacion
+        
+        # Verificar compatibilidad de tipos en la asignación
         result_type = get_result_type(var.type.value, expr_type.value, '=')
         if result_type == ERROR:
-            self.add_error(ctx, f"Tipo incompatible en asignacion: no se puede asignar {expr_type.name} a {var.type.name}.")
-
+            self.add_error(ctx, f"Tipo incompatible en asignación: no se puede asignar {expr_type.name} a {var.type.name}.")
+            return Type.ERROR
+        
+        # Procesar la asignación
+        self.quad_generator.process_assignment()
+        
         return Type.VOID
     
     def visitExpresion(self, ctx: BabyDuckParser.ExpresionContext):
-        # Visitar la primer expresion
+        # Visitar la primer expresión
         left_type = self.visit(ctx.exp(0))
 
         # Si hay un operador relacional
         if len(ctx.exp()) > 1:
             # Obtener el operador
             if ctx.GT():
-                op = '>'
+                op = OperatorType.GT
             elif ctx.LT():
-                op = '<'
+                op = OperatorType.LT
             elif ctx.NE():
-                op = '!='
+                op = OperatorType.NE
             elif ctx.LE():
-                op = '<='
+                op = OperatorType.LE
             elif ctx.GE():
-                op = '>='
+                op = OperatorType.GE
             elif ctx.EQ():
-                op = '=='
+                op = OperatorType.EQ
             else:
-                op = 'unknown'
-
-            # Visitar la segunda expresion
+                op = None
+            
+            # Guardar el operador en la pila
+            self.quad_generator.operator_stack.append(op)
+            
+            # Visitar la segunda expresión
             right_type = self.visit(ctx.exp(1))
-
-            # Verificar compatbilidad 
-            result = get_result_type(left_type.value, right_type.value, op)
+            
+            # Verificar compatibilidad 
+            result = get_result_type(left_type.value, right_type.value, op.value)
             if result == ERROR:
-                self.add_error(ctx, f"Operacion incompatible {left_type.name} {op} {right_type.name}")
+                self.add_error(ctx, f"Operación incompatible {left_type.name} {op.value} {right_type.name}")
                 return Type.ERROR
             
-            return Type.INT # Operaciones relacionales devuelven INT (0 o 1)
+            # Procesar la expresión relacional
+            self.quad_generator.process_relational_expression()
+            
+            return Type.INT  # Operaciones relacionales devuelven INT (0 o 1)
         
-        return left_type # Si no hay operador relacional, devolver el tipo de la expresion
+        return left_type  # Si no hay operador relacional, devolver el tipo de la expresión
     
     def visitExp(self, ctx: BabyDuckParser.ExpContext):
         # Visitar el primer término
@@ -179,17 +206,24 @@ class SemanticAnalyzer(BabyDuckVisitor):
         
         # Si hay más términos con operadores + o -
         for i in range(1, len(ctx.termino())):
-            term_type = self.visit(ctx.termino(i))
             # El operador está en la posición i-1
-            op = '+' if ctx.PLUS(i-1) else '-'
+            op = OperatorType.PLUS if ctx.PLUS(i-1) else OperatorType.MINUS
+            self.quad_generator.operator_stack.append(op)
+            
+            # Visitar el siguiente término
+            term_type = self.visit(ctx.termino(i))
             
             # Verificar compatibilidad
-            result = get_result_type(current_type.value, term_type.value, op)
+            result = get_result_type(current_type.value, term_type.value, op.value)
             if result == ERROR:
-                self.add_error(ctx, f"Operación incompatible: {current_type.name} {op} {term_type.name}")
+                self.add_error(ctx, f"Operación incompatible: {current_type.name} {op.value} {term_type.name}")
                 return Type.ERROR
-                
-            current_type = Type.INT if result == INT else Type.FLOAT
+            
+            # Procesar la expresión aritmética
+            self.quad_generator.process_arithmetic_expression([OperatorType.PLUS, OperatorType.MINUS])
+            
+            # Actualizar el tipo actual (ahora está en el tope de la pila)
+            current_type = self.quad_generator.type_stack[-1]
             
         return current_type
         
@@ -199,39 +233,132 @@ class SemanticAnalyzer(BabyDuckVisitor):
         
         # Si hay más factores con operadores * o /
         for i in range(1, len(ctx.factor())):
-            factor_type = self.visit(ctx.factor(i))
             # El operador está en la posición i-1
-            op = '*' if ctx.MULT(i-1) else '/'
+            op = OperatorType.MULT if ctx.MULT(i-1) else OperatorType.DIV
+            self.quad_generator.operator_stack.append(op)
+            
+            # Visitar el siguiente factor
+            factor_type = self.visit(ctx.factor(i))
             
             # Verificar compatibilidad
-            result = get_result_type(current_type.value, factor_type.value, op)
+            result = get_result_type(current_type.value, factor_type.value, op.value)
             if result == ERROR:
-                self.add_error(ctx, f"Operación incompatible: {current_type.name} {op} {factor_type.name}")
+                self.add_error(ctx, f"Operación incompatible: {current_type.name} {op.value} {factor_type.name}")
                 return Type.ERROR
-                
-            current_type = Type.INT if result == INT else Type.FLOAT
+            
+            # Procesar la expresión aritmética
+            self.quad_generator.process_arithmetic_expression([OperatorType.MULT, OperatorType.DIV])
+            
+            # Actualizar el tipo actual (ahora está en el tope de la pila)
+            current_type = self.quad_generator.type_stack[-1]
             
         return current_type
         
     def visitFactor(self, ctx: BabyDuckParser.FactorContext):
-        # Si es una expresión entre paréntesis
-        if ctx.expresion():
-            return self.visit(ctx.expresion())
+        # Si es un signo unario
+        if ctx.PLUS() or ctx.MINUS():
+            has_unary_minus = ctx.MINUS() is not None
             
-        # Si es un ID
-        elif ctx.ID():
-            var_name = ctx.ID().getText()
-            var = self.symbol_table.lookup_variable(var_name)
-            
-            if not var:
-                self.add_error(ctx, f"Variable '{var_name}' no declarada")
-                return Type.ERROR
+            # Si es una expresión entre paréntesis
+            if ctx.expresion():
+                result_type = self.visit(ctx.expresion())
                 
-            return var.type
+                # Si hay un signo negativo, negar el valor
+                if has_unary_minus:
+                    operand = self.quad_generator.operand_stack.pop()
+                    self.quad_generator.type_stack.pop()
+                    
+                    # Generar temporal para el valor negado
+                    temp = self.quad_generator.generate_temp()
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    
+                    # Añadir a las pilas
+                    self.quad_generator.operand_stack.append(temp)
+                    self.quad_generator.type_stack.append(result_type)
+                
+                return result_type
             
-        # Si es una constante
-        elif ctx.cte():
-            return self.visit(ctx.cte())
+            # Si es un ID
+            elif ctx.ID():
+                var_name = ctx.ID().getText()
+                var = self.symbol_table.lookup_variable(var_name)
+                
+                if not var:
+                    self.add_error(ctx, f"Variable '{var_name}' no declarada")
+                    return Type.ERROR
+                
+                # Añadir a las pilas
+                self.quad_generator.operand_stack.append(var_name)
+                self.quad_generator.type_stack.append(var.type)
+                
+                # Si hay un signo negativo, negar el valor
+                if has_unary_minus:
+                    operand = self.quad_generator.operand_stack.pop()
+                    self.quad_generator.type_stack.pop()
+                    
+                    # Generar temporal para el valor negado
+                    temp = self.quad_generator.generate_temp()
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    
+                    # Añadir a las pilas
+                    self.quad_generator.operand_stack.append(temp)
+                    self.quad_generator.type_stack.append(var.type)
+                
+                return var.type
+            
+            # Si es una constante
+            elif ctx.cte():
+                cte_type = self.visit(ctx.cte())
+                cte_val = ctx.cte().getText()
+                
+                # Añadir a las pilas
+                self.quad_generator.operand_stack.append(cte_val)
+                self.quad_generator.type_stack.append(cte_type)
+                
+                # Si hay un signo negativo, negar el valor
+                if has_unary_minus:
+                    operand = self.quad_generator.operand_stack.pop()
+                    self.quad_generator.type_stack.pop()
+                    
+                    # Generar temporal para el valor negado
+                    temp = self.quad_generator.generate_temp()
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    
+                    # Añadir a las pilas
+                    self.quad_generator.operand_stack.append(temp)
+                    self.quad_generator.type_stack.append(cte_type)
+                
+                return cte_type
+        else:
+            # Si es una expresión entre paréntesis
+            if ctx.expresion():
+                return self.visit(ctx.expresion())
+                
+            # Si es un ID
+            elif ctx.ID():
+                var_name = ctx.ID().getText()
+                var = self.symbol_table.lookup_variable(var_name)
+                
+                if not var:
+                    self.add_error(ctx, f"Variable '{var_name}' no declarada")
+                    return Type.ERROR
+                    
+                # Añadir a las pilas
+                self.quad_generator.operand_stack.append(var_name)
+                self.quad_generator.type_stack.append(var.type)
+                
+                return var.type
+                
+            # Si es una constante
+            elif ctx.cte():
+                cte_type = self.visit(ctx.cte())
+                cte_val = ctx.cte().getText()
+                
+                # Añadir a las pilas
+                self.quad_generator.operand_stack.append(cte_val)
+                self.quad_generator.type_stack.append(cte_type)
+                
+                return cte_type
             
         return Type.ERROR
         
@@ -245,15 +372,34 @@ class SemanticAnalyzer(BabyDuckVisitor):
         return Type.ERROR
         
     def visitPrint(self, ctx: BabyDuckParser.PrintContext):
-        # Visitar la lista de imprimibles
-        self.visit(ctx.printableList())
+        # Visitar la lista de imprimibles y generar cuádruplos para cada elemento
+        printable_list = self.visit(ctx.printableList())
+        
+        # Para cada elemento en la lista, generar un cuádruplo de print
+        for value, value_type in printable_list:
+            self.quad_generator.add_quadruple(OperatorType.PRINT, value, None, None)
+        
         return Type.VOID
         
     def visitPrintableList(self, ctx: BabyDuckParser.PrintableListContext):
+        # Lista de elementos imprimibles (valor, tipo)
+        printables = []
+        
         # Visitar cada elemento imprimible
         for printable in ctx.printable():
-            self.visit(printable)
-        return None
+            result = self.visit(printable)
+            
+            # Si es una expresión, su valor está en el tope de la pila
+            if printable.expresion():
+                value = self.quad_generator.operand_stack.pop()
+                value_type = self.quad_generator.type_stack.pop()
+                printables.append((value, value_type))
+            # Si es una cadena, es una constante literal
+            elif printable.CTE_STRING():
+                value = printable.CTE_STRING().getText()
+                printables.append((value, Type.VOID))  # Las cadenas no tienen un tipo específico en BabyDuck
+        
+        return printables
         
     def visitPrintable(self, ctx: BabyDuckParser.PrintableContext):
         # Si es una expresión, verificar su tipo
@@ -266,21 +412,76 @@ class SemanticAnalyzer(BabyDuckVisitor):
         # Verificar que la expresión de la condición sea booleana
         expr_type = self.visit(ctx.expresion())
         
+        # Obtener la condición del tope de la pila
+        condition = self.quad_generator.operand_stack.pop()
+        self.quad_generator.type_stack.pop()
+        
+        # Generar el GOTOF para la condición
+        gotof_index = self.quad_generator.generate_gotof(condition)
+        self.quad_generator.jump_stack.append(gotof_index)
+        
         # Visitar el cuerpo del if
         self.visit(ctx.body(0))
         
-        # Si hay else, visitar también su cuerpo
+        # Si hay else
         if len(ctx.body()) > 1:
+            # Generar GOTO al final del else y guardar su índice
+            goto_end_index = self.quad_generator.generate_goto()
+            
+            # Completar el GOTOF para saltar al else
+            else_quad_index = self.quad_generator.quad_counter
+            self.quad_generator.fill_quadruple(gotof_index, else_quad_index)
+            
+            # Sacar el GOTOF de la pila de saltos (ya lo completamos)
+            self.quad_generator.jump_stack.pop()
+            
+            # Visitar el cuerpo del else
             self.visit(ctx.body(1))
+            
+            # Completar el GOTO al final
+            end_quad_index = self.quad_generator.quad_counter
+            self.quad_generator.fill_quadruple(goto_end_index, end_quad_index)
+        else:
+            # No hay else, completar el GOTOF para saltar al final
+            end_quad_index = self.quad_generator.quad_counter
+            self.quad_generator.fill_quadruple(gotof_index, end_quad_index)
+            
+            # Sacar el GOTOF de la pila de saltos (ya lo completamos)
+            self.quad_generator.jump_stack.pop()
             
         return Type.VOID
         
     def visitCycle(self, ctx: BabyDuckParser.CycleContext):
+        # Guardar la posición de inicio del ciclo
+        start_index = self.quad_generator.quad_counter
+        self.quad_generator.jump_stack.append(start_index)
+        
         # Verificar que la expresión del while sea booleana
         expr_type = self.visit(ctx.expresion())
         
+        # Obtener la condición del tope de la pila
+        condition = self.quad_generator.operand_stack.pop()
+        self.quad_generator.type_stack.pop()
+        
+        # Generar el GOTOF para la condición
+        gotof_index = self.quad_generator.generate_gotof(condition)
+        self.quad_generator.jump_stack.append(gotof_index)
+        
         # Visitar el cuerpo del ciclo
         self.visit(ctx.body())
+        
+        # Generar el GOTO al inicio del ciclo
+        self.quad_generator.add_quadruple(OperatorType.GOTO, None, None, start_index)
+        
+        # Completar el GOTOF para saltar al final del ciclo
+        end_quad_index = self.quad_generator.quad_counter
+        
+        # Sacar el GOTOF de la pila y completarlo
+        gotof = self.quad_generator.jump_stack.pop()
+        self.quad_generator.fill_quadruple(gotof, end_quad_index)
+        
+        # Sacar el índice de inicio del ciclo (ya no lo necesitamos)
+        self.quad_generator.jump_stack.pop()
         
         return Type.VOID
         
@@ -293,7 +494,10 @@ class SemanticAnalyzer(BabyDuckVisitor):
             self.add_error(ctx, f"Función '{func_name}' no declarada")
             return Type.ERROR
             
-        # Verificar que el número de argumentos coincida con el número de parámetros
+        # Generar ERA para la llamada a función (reserva de espacio)
+        self.quad_generator.add_quadruple(OperatorType.ERA, func_name, None, None)
+        
+        # Verificar los argumentos
         arg_list = ctx.argList()
         expected_params = func.params
         
@@ -312,20 +516,30 @@ class SemanticAnalyzer(BabyDuckVisitor):
                 self.add_error(ctx, f"La función '{func_name}' espera {len(expected_params)} argumentos, pero recibió {arg_count}")
                 return func.type
                 
-            # Verificar el tipo de cada argumento
+            # Procesar cada argumento
             for i, expr_ctx in enumerate(arg_list.expresion()):
+                # Visitar la expresión del argumento
                 arg_type = self.visit(expr_ctx)
+                
+                # Obtener el valor del argumento de la pila
+                arg_value = self.quad_generator.operand_stack.pop()
+                self.quad_generator.type_stack.pop()
+                
+                # Tipo esperado del parámetro
                 param_type = expected_params[i].type
                 
                 # Verificar compatibilidad de tipos
                 if arg_type != param_type and not (arg_type == Type.INT and param_type == Type.FLOAT):
                     self.add_error(expr_ctx, f"Tipo incompatible en argumento {i+1}: esperaba {param_type.name}, recibió {arg_type.name}")
+                
+                # Generar cuádruplo para el parámetro
+                self.quad_generator.add_quadruple(OperatorType.PARAM, arg_value, None, f"param{i+1}")
                     
+        # Generar GOSUB para la llamada a función
+        self.quad_generator.add_quadruple(OperatorType.GOSUB, func_name, None, func.start_address)
+        
         return func.type
         
     def visitArgList(self, ctx: BabyDuckParser.ArgListContext):
-        # Visitar cada expresión en la lista de argumentos
-        for expr_ctx in ctx.expresion():
-            self.visit(expr_ctx)
+        # No hacemos nada aquí, los argumentos se procesan en visitFcall
         return None
-
