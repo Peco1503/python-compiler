@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Compilador para el lenguaje BabyDuck
-
 """
 
 import sys
@@ -17,6 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'generated'))
 from BabyDuckLexer import BabyDuckLexer
 from BabyDuckParser import BabyDuckParser
 from semantic_analyzer import SemanticAnalyzer, SemanticError
+from memory_manager import SegmentType, DataType
 
 class SyntaxErrorListener(ErrorListener):
     """
@@ -96,19 +96,19 @@ def print_symbol_table(symbol_table):
     Imprime el directorio de funciones y las tablas de variables
     """
     print("\n=== DIRECTORIO DE FUNCIONES ===")
-    print(f"{'Nombre':<15} {'Tipo':<10} {'#Params':<10} {'#Vars':<10}")
-    print("-" * 50)
+    print(f"{'Nombre':<15} {'Tipo':<10} {'#Params':<10} {'#Vars':<10} {'#Temps':<10} {'Inicio':<10}")
+    print("-" * 70)
 
     for func_name, func in symbol_table.functions.items():
-        print(f"{func_name:<15} {func.type.name:<10} {len(func.params):<10} {len(func.vars_table):<10}")
+        print(f"{func_name:<15} {func.type.name:<10} {len(func.params):<10} {func.local_vars_count:<10} {func.temp_vars_count:<10} {func.start_address:<10}")
 
     # Imprimir variables globales
     print("\n=== VARIABLES GLOBALES ===")
     if symbol_table.global_vars:
-        print(f"{'Nombre':<15} {'Tipo':<10}")
-        print("-" * 30)
+        print(f"{'Nombre':<15} {'Tipo':<10} {'Dirección':<10}")
+        print("-" * 40)
         for var_name, var in symbol_table.global_vars.items():
-            print(f"{var_name:<15} {var.type.name:<10}")
+            print(f"{var_name:<15} {var.type.name:<10} {var.address:<10}")
     else:
         print("No hay variables globales")
     
@@ -116,11 +116,11 @@ def print_symbol_table(symbol_table):
     for func_name, func in symbol_table.functions.items():
         print(f"\n=== VARIABLES DE '{func_name}' ===")
         if func.vars_table:
-            print(f"{'Nombre':<15} {'Tipo':<10} {'Es Parámetro':<15}")
-            print("-" * 45)
+            print(f"{'Nombre':<15} {'Tipo':<10} {'Dirección':<10} {'Es Parámetro':<15}")
+            print("-" * 55)
             for var_name, var in func.vars_table.items():
                 is_param = "Sí" if var_name in [p.name for p in func.params] else "No"
-                print(f"{var_name:<15} {var.type.name:<10} {is_param:<15}")
+                print(f"{var_name:<15} {var.type.name:<10} {var.address:<10} {is_param:<15}")
         else:
             print(f"La función '{func_name}' no tiene variables locales")
 
@@ -133,7 +133,54 @@ def print_quadruples(quadruples):
     print("-" * 60)
     
     for i, quad in enumerate(quadruples):
-        print(f"{i:<4} {str(quad.operator):<10} {str(quad.left_operand) if quad.left_operand is not None else 'None':<15} {str(quad.right_operand) if quad.right_operand is not None else 'None':<15} {str(quad.result) if quad.result is not None else 'None':<15}")
+        # Convertir direcciones virtuales en strings para impresión 
+        left_op = str(quad.left_operand) if quad.left_operand is not None else 'None'
+        right_op = str(quad.right_operand) if quad.right_operand is not None else 'None'
+        result = str(quad.result) if quad.result is not None else 'None'
+        
+        print(f"{i:<4} {str(quad.operator):<10} {left_op:<15} {right_op:<15} {result:<15}")
+
+def print_memory_map(memory_manager):
+    """
+    Imprime el mapa de memoria con las direcciones virtuales asignadas
+    """
+    print("\n=== MAPA DE MEMORIA VIRTUAL ===")
+    
+    for segment, segment_ranges in memory_manager.MEMORY_RANGES.items():
+        print(f"\n== Segmento: {segment.name} ==")
+        print(f"{'Tipo':<8} {'Rango Inicial':<15} {'Rango Final':<15} {'Uso Actual':<15}")
+        print("-" * 60)
+        
+        for data_type, (start, end) in segment_ranges.items():
+            current = memory_manager.counters[segment][data_type]
+            used = current - start
+            capacity = end - start + 1
+            percentage = (used / capacity) * 100
+            
+            print(f"{data_type.name:<8} {start:<15} {end:<15} {used}/{capacity} ({percentage:.1f}%)")
+    
+    print("\n== Constantes Registradas ==")
+    if memory_manager.constant_map:
+        print(f"{'Valor':<20} {'Tipo':<10} {'Dirección':<10}")
+        print("-" * 45)
+        
+        for value, address in memory_manager.constant_map.items():
+            # Determinar el tipo de la constante
+            if isinstance(value, int):
+                type_name = "INT"
+            elif isinstance(value, float):
+                type_name = "FLOAT"
+            elif isinstance(value, str):
+                type_name = "STRING"
+                # Acortar strings muy largos para mejor visualización
+                if len(value) > 15:
+                    value = value[:12] + "..."
+            else:
+                type_name = "UNKNOWN"
+                
+            print(f"{str(value):<20} {type_name:<10} {address:<10}")
+    else:
+        print("No hay constantes registradas")
 
 def main(argv):
     # Verificar argumentos
@@ -177,8 +224,8 @@ def main(argv):
         print("Análisis sintáctico exitoso.")
         
         # Mostrar el árbol sintáctico
-        print("\n=== ÁRBOL SINTÁCTICO ===")
-        print_parse_tree(tree, parser)
+        #print("\n=== ÁRBOL SINTÁCTICO ===")
+        #print_parse_tree(tree, parser)
 
         # Realizar análisis semántico
         print("\n=== ANÁLISIS SEMÁNTICO ===")
@@ -207,8 +254,11 @@ def main(argv):
                 # Mostrar los cuádruplos generados
                 print_quadruples(quadruples)
                 
+                # Mostrar el mapa de memoria
+                print_memory_map(semantic_analyzer.quad_generator.memory_manager)
+                
                 print(f"\nTotal de cuádruplos generados: {len(quadruples)}")
-                print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.temp_counter - 1}")
+                print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.memory_manager.temp_counter}")
                 
         except SemanticError as e:
             print(f"Error semántico: {str(e)}")
@@ -219,6 +269,8 @@ def main(argv):
         print(f"\nError de reconocimiento: {str(e)}")
     except Exception as e:
         print(f"\nError inesperado: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == '__main__':
     main(sys.argv)

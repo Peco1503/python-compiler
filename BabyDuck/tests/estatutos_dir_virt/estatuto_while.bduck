@@ -1,0 +1,20 @@
+// Estatuto cíclico while
+program estatutoWhile;
+
+var
+  a : int;
+  b : int;
+
+main
+{
+  a = 1;
+  b = 10;
+  
+  while (a <= b) do {
+    print("Iteración: ", a);
+    a = a + 1;
+  };
+  
+  print("Fin del programa");
+}
+end

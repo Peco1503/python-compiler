@@ -1,0 +1,91 @@
+program testCompilador;
+var 
+  a, b, c, resultado : int;
+  f1, f2, f3 : float;
+
+void calculaFactorial(num : int, res : int)
+var
+  i, temp : int;
+{
+  i = 1;
+  temp = 1;
+  
+  while (i <= num) do {
+    temp = temp * i;
+    i = i + 1;
+  };
+  
+  res = temp;
+};
+
+void evaluaCondiciones(x : int, y : int)
+var
+  mayor : int;
+{
+  if (x > y) {
+    print("X es mayor que Y");
+    mayor = x;
+  } else {
+    print("Y es mayor que X");
+    mayor = y;
+  };
+  
+  if (mayor > 10) {
+    print("El mayor es > 10");
+  };
+};
+
+main
+{
+  a = 5;
+  b = 10;
+  c = a + b * 2;
+  
+  f1 = 3.14;
+  f2 = f1 * 2.0;
+  
+  print("Valores iniciales:");
+  print("a = ", a);
+  print("b = ", b);
+  print("c = ", c);
+  print("f1 = ", f1);
+  print("f2 = ", f2);
+  
+  // Prueba de estatutos condicionales
+  if (a < b) {
+    print("a es menor que b");
+  } else {
+    print("a NO es menor que b");
+  };
+  
+  // Prueba de estatutos cíclicos
+  a = 1;
+  while (a <= 5) do {
+    print("Iteración: ", a);
+    a = a + 1;
+  };
+  
+  // Prueba de llamadas a funciones
+  calculaFactorial(5, resultado);
+  print("El factorial de 5 es: ", resultado);
+  
+  // Prueba de funciones con múltiples parámetros
+  evaluaCondiciones(b, c);
+  
+  // Prueba de expresiones complejas
+  // Cambiado para usar f3 en lugar de asignar a 'a' (que es int)
+  f3 = (b + c) * (f1 - 1.0);
+  print("Resultado de expresión compleja: ", f3);
+  
+  // Prueba de operaciones lógicas simplificada
+  if (a > 10) {
+    print("a es mayor que 10");
+  };
+  
+  if (c < 20) {
+    print("c es menor que 20");
+  };
+  
+  print("Fin del programa");
+}
+end

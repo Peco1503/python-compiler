@@ -3,7 +3,8 @@ from generated.src.BabyDuckParser import BabyDuckParser
 from generated.src.BabyDuckVisitor import BabyDuckVisitor
 from semantic_cube import get_result_type, INT, FLOAT, ERROR
 from symbol_table import SymbolTable, Type, Variable, Function
-from quad_generator import QuadrupleGenerator, OperatorType, Quadruple
+from quad_generator import QuadrupleGenerator, OperatorType
+from memory_manager import SegmentType, DataType
 from typing import Any, List, Dict, Tuple
 
 class SemanticError(Exception):
@@ -15,14 +16,17 @@ class SemanticAnalyzer(BabyDuckVisitor):
         self.symbol_table = SymbolTable()
         self.errors = []
         self.quad_generator = QuadrupleGenerator()  # Generador de cuádruplos
-
+        
     def add_error(self, ctx, message):
         """Añade un error semántico"""
         line = ctx.start.line
         column = ctx.start.column
-        self.errors.append(f"Error semántico en linea {line}:{column} - {message}")
+        self.errors.append(f"Error semántico en línea {line}:{column} - {message}")
 
     def visitPrograma(self, ctx: BabyDuckParser.ProgramaContext):
+        # Establecer la función global
+        self.quad_generator.set_current_function("global")
+        
         # Añadir el programa como una "función" global
         program_name = ctx.ID().getText()
         self.symbol_table.add_function(program_name, Type.VOID)
@@ -36,15 +40,25 @@ class SemanticAnalyzer(BabyDuckVisitor):
             
         if ctx.funcs():
             self.visit(ctx.funcs())
+
+        # Generar cuádruplo de GOTO para saltar a main
+        main_jump = self.quad_generator.generate_goto()
             
         # Cambiar a la función main para el cuerpo principal
         self.symbol_table.current_function = "main"
+        self.quad_generator.set_current_function("main")
+        
+        # Guardar la dirección de inicio de main
+        main_start = self.quad_generator.quad_counter
+        
+        # Completar el cuádruplo de salto a main
+        self.quad_generator.fill_quadruple(main_jump, main_start)
         
         # Visitar el cuerpo principal
         self.visit(ctx.body())
         
-        # Verificar que todas las funciones declaradas han sido utilizadas
-        # (esto se podría implementar si se desea)
+        # Generar cuádruplo de fin de programa (ENDFUNC para main)
+        self.quad_generator.generate_endfunc()
         
         # Retornar tanto la tabla de símbolos como los cuádruplos generados
         return self.symbol_table, self.quad_generator.quadruples
@@ -54,9 +68,9 @@ class SemanticAnalyzer(BabyDuckVisitor):
         return self.visit(ctx.varDecList())
     
     def visitVarDecList(self, ctx: BabyDuckParser.VarDecListContext):
-        # Visitar cada declaracion de variable
-        for vac_dec in ctx.varDec():
-            self.visit(vac_dec)
+        # Visitar cada declaración de variable
+        for var_dec in ctx.varDec():
+            self.visit(var_dec)
         return None
     
     def visitVarDec(self, ctx: BabyDuckParser.VarDecContext):
@@ -68,14 +82,31 @@ class SemanticAnalyzer(BabyDuckVisitor):
         id_list = ctx.idList()
         is_global = self.symbol_table.current_function == "programa"
 
+        # Mapear Type a DataType para la asignación de memoria
+        data_type = DataType.INT if var_type == Type.INT else DataType.FLOAT
+        segment_type = SegmentType.GLOBAL if is_global else SegmentType.LOCAL
+
         for id_token in id_list.ID():
             var_name = id_token.getText()
             if not self.symbol_table.add_variable(var_name, var_type, is_global):
                 self.add_error(ctx, f"La variable '{var_name}' ya ha sido declarada.")
+                continue
+                
+            # Asignar dirección virtual a la variable
+            address = self.quad_generator.memory_manager.get_address(segment_type, data_type)
+            
+            # Asociar la variable con su dirección
+            self.quad_generator.set_var_address(var_name, address)
+            
+            # Actualizar la dirección en la tabla de símbolos
+            var = self.symbol_table.lookup_variable(var_name)
+            if var:
+                var.address = address
+        
         return None
     
     def visitFuncs(self, ctx: BabyDuckParser.FuncsContext):
-        # Visitar cada declaracion de funcion
+        # Visitar cada declaración de función
         for func_dec in ctx.funcDec():
             self.visit(func_dec)
         return None
@@ -91,6 +122,10 @@ class SemanticAnalyzer(BabyDuckVisitor):
         if not self.symbol_table.add_function(func_name, func_type):
             self.add_error(ctx, f"Función '{func_name}' ya declarada")
             return None
+        
+        # Establecer la función actual
+        self.symbol_table.current_function = func_name
+        self.quad_generator.set_current_function(func_name)
             
         # Guardar la dirección de inicio de la función
         func_start = self.quad_generator.quad_counter
@@ -108,7 +143,12 @@ class SemanticAnalyzer(BabyDuckVisitor):
         self.visit(ctx.body())
         
         # Generar cuádruplo de fin de función
-        self.quad_generator.add_quadruple(OperatorType.ENDFUNC, None, None, None)
+        self.quad_generator.generate_endfunc()
+        
+        # Actualizar el número de variables locales y temporales usadas en la función
+        func = self.symbol_table.functions[func_name]
+        func.local_vars_count = len(func.vars_table)
+        func.temp_vars_count = self.quad_generator.memory_manager.temp_counter
         
         return None
     
@@ -123,9 +163,24 @@ class SemanticAnalyzer(BabyDuckVisitor):
         param_name = ctx.ID().getText()
         param_type = Type.INT if ctx.type_().INT() else Type.FLOAT
         
+        # Mapear Type a DataType para la asignación de memoria
+        data_type = DataType.INT if param_type == Type.INT else DataType.FLOAT
+        
         # Añadir el parámetro a la función actual
         if not self.symbol_table.add_param(param_name, param_type):
             self.add_error(ctx, f"Parámetro '{param_name}' ya declarado en la función")
+            return None
+            
+        # Asignar dirección virtual al parámetro (como variable local)
+        address = self.quad_generator.memory_manager.get_address(SegmentType.LOCAL, data_type)
+        
+        # Asociar el parámetro con su dirección
+        self.quad_generator.set_var_address(param_name, address)
+        
+        # Actualizar la dirección en la tabla de símbolos
+        var = self.symbol_table.lookup_variable(param_name)
+        if var:
+            var.address = address
             
         return None
     
@@ -138,8 +193,14 @@ class SemanticAnalyzer(BabyDuckVisitor):
             self.add_error(ctx, f"Variable '{var_name}' no declarada.")
             return Type.ERROR
         
+        # Obtener la dirección virtual de la variable
+        var_address = self.quad_generator.get_var_address(var_name)
+        if var_address is None:
+            self.add_error(ctx, f"No se encontró dirección para variable '{var_name}'.")
+            return Type.ERROR
+        
         # Añadir la variable a la pila de operandos y tipos
-        self.quad_generator.operand_stack.append(var_name)
+        self.quad_generator.operand_stack.append(var_address)
         self.quad_generator.type_stack.append(var.type)
         
         # Añadir operador de asignación
@@ -160,7 +221,7 @@ class SemanticAnalyzer(BabyDuckVisitor):
         return Type.VOID
     
     def visitExpresion(self, ctx: BabyDuckParser.ExpresionContext):
-        # Visitar la primer expresión
+        # Visitar la primera expresión
         left_type = self.visit(ctx.exp(0))
 
         # Si hay un operador relacional
@@ -196,7 +257,7 @@ class SemanticAnalyzer(BabyDuckVisitor):
             # Procesar la expresión relacional
             self.quad_generator.process_relational_expression()
             
-            return Type.INT  # Operaciones relacionales devuelven INT (0 o 1)
+            return Type.VOID  # Para operaciones relacionales usamos Type.VOID como marcador booleano
         
         return left_type  # Si no hay operador relacional, devolver el tipo de la expresión
     
@@ -266,15 +327,20 @@ class SemanticAnalyzer(BabyDuckVisitor):
                 # Si hay un signo negativo, negar el valor
                 if has_unary_minus:
                     operand = self.quad_generator.operand_stack.pop()
-                    self.quad_generator.type_stack.pop()
+                    operand_type = self.quad_generator.type_stack.pop()
+                    
+                    # Obtener dirección para la constante 0
+                    zero_address = self.quad_generator.get_constant_address(0)
                     
                     # Generar temporal para el valor negado
-                    temp = self.quad_generator.generate_temp()
-                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    temp_address = self.quad_generator.get_temp_address(operand_type)
+                    
+                    # Añadir cuádruplo para la negación
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, zero_address, operand, temp_address)
                     
                     # Añadir a las pilas
-                    self.quad_generator.operand_stack.append(temp)
-                    self.quad_generator.type_stack.append(result_type)
+                    self.quad_generator.operand_stack.append(temp_address)
+                    self.quad_generator.type_stack.append(operand_type)
                 
                 return result_type
             
@@ -287,46 +353,71 @@ class SemanticAnalyzer(BabyDuckVisitor):
                     self.add_error(ctx, f"Variable '{var_name}' no declarada")
                     return Type.ERROR
                 
+                # Obtener dirección virtual
+                var_address = self.quad_generator.get_var_address(var_name)
+                if var_address is None:
+                    self.add_error(ctx, f"No se encontró dirección para variable '{var_name}'.")
+                    return Type.ERROR
+                
                 # Añadir a las pilas
-                self.quad_generator.operand_stack.append(var_name)
+                self.quad_generator.operand_stack.append(var_address)
                 self.quad_generator.type_stack.append(var.type)
                 
                 # Si hay un signo negativo, negar el valor
                 if has_unary_minus:
                     operand = self.quad_generator.operand_stack.pop()
-                    self.quad_generator.type_stack.pop()
+                    operand_type = self.quad_generator.type_stack.pop()
+                    
+                    # Obtener dirección para la constante 0
+                    zero_address = self.quad_generator.get_constant_address(0)
                     
                     # Generar temporal para el valor negado
-                    temp = self.quad_generator.generate_temp()
-                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    temp_address = self.quad_generator.get_temp_address(operand_type)
+                    
+                    # Añadir cuádruplo para la negación
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, zero_address, operand, temp_address)
                     
                     # Añadir a las pilas
-                    self.quad_generator.operand_stack.append(temp)
-                    self.quad_generator.type_stack.append(var.type)
+                    self.quad_generator.operand_stack.append(temp_address)
+                    self.quad_generator.type_stack.append(operand_type)
                 
                 return var.type
             
             # Si es una constante
             elif ctx.cte():
                 cte_type = self.visit(ctx.cte())
-                cte_val = ctx.cte().getText()
+                cte_text = ctx.cte().getText()
+                
+                # Convertir texto a valor numérico
+                if cte_type == Type.INT:
+                    cte_val = int(cte_text)
+                else:  # Type.FLOAT
+                    cte_val = float(cte_text)
+                
+                # Obtener dirección para la constante
+                cte_address = self.quad_generator.get_constant_address(cte_val)
                 
                 # Añadir a las pilas
-                self.quad_generator.operand_stack.append(cte_val)
+                self.quad_generator.operand_stack.append(cte_address)
                 self.quad_generator.type_stack.append(cte_type)
                 
                 # Si hay un signo negativo, negar el valor
                 if has_unary_minus:
                     operand = self.quad_generator.operand_stack.pop()
-                    self.quad_generator.type_stack.pop()
+                    operand_type = self.quad_generator.type_stack.pop()
+                    
+                    # Obtener dirección para la constante 0
+                    zero_address = self.quad_generator.get_constant_address(0)
                     
                     # Generar temporal para el valor negado
-                    temp = self.quad_generator.generate_temp()
-                    self.quad_generator.add_quadruple(OperatorType.MINUS, "0", operand, temp)
+                    temp_address = self.quad_generator.get_temp_address(operand_type)
+                    
+                    # Añadir cuádruplo para la negación
+                    self.quad_generator.add_quadruple(OperatorType.MINUS, zero_address, operand, temp_address)
                     
                     # Añadir a las pilas
-                    self.quad_generator.operand_stack.append(temp)
-                    self.quad_generator.type_stack.append(cte_type)
+                    self.quad_generator.operand_stack.append(temp_address)
+                    self.quad_generator.type_stack.append(operand_type)
                 
                 return cte_type
         else:
@@ -342,9 +433,15 @@ class SemanticAnalyzer(BabyDuckVisitor):
                 if not var:
                     self.add_error(ctx, f"Variable '{var_name}' no declarada")
                     return Type.ERROR
+                
+                # Obtener dirección virtual
+                var_address = self.quad_generator.get_var_address(var_name)
+                if var_address is None:
+                    self.add_error(ctx, f"No se encontró dirección para variable '{var_name}'.")
+                    return Type.ERROR
                     
                 # Añadir a las pilas
-                self.quad_generator.operand_stack.append(var_name)
+                self.quad_generator.operand_stack.append(var_address)
                 self.quad_generator.type_stack.append(var.type)
                 
                 return var.type
@@ -352,10 +449,19 @@ class SemanticAnalyzer(BabyDuckVisitor):
             # Si es una constante
             elif ctx.cte():
                 cte_type = self.visit(ctx.cte())
-                cte_val = ctx.cte().getText()
+                cte_text = ctx.cte().getText()
+                
+                # Convertir texto a valor numérico
+                if cte_type == Type.INT:
+                    cte_val = int(cte_text)
+                else:  # Type.FLOAT
+                    cte_val = float(cte_text)
+                
+                # Obtener dirección para la constante
+                cte_address = self.quad_generator.get_constant_address(cte_val)
                 
                 # Añadir a las pilas
-                self.quad_generator.operand_stack.append(cte_val)
+                self.quad_generator.operand_stack.append(cte_address)
                 self.quad_generator.type_stack.append(cte_type)
                 
                 return cte_type
@@ -376,8 +482,8 @@ class SemanticAnalyzer(BabyDuckVisitor):
         printable_list = self.visit(ctx.printableList())
         
         # Para cada elemento en la lista, generar un cuádruplo de print
-        for value, value_type in printable_list:
-            self.quad_generator.add_quadruple(OperatorType.PRINT, value, None, None)
+        for value_address, value_type in printable_list:
+            self.quad_generator.add_quadruple(OperatorType.PRINT, value_address, None, None)
         
         return Type.VOID
         
@@ -391,13 +497,15 @@ class SemanticAnalyzer(BabyDuckVisitor):
             
             # Si es una expresión, su valor está en el tope de la pila
             if printable.expresion():
-                value = self.quad_generator.operand_stack.pop()
+                value_address = self.quad_generator.operand_stack.pop()
                 value_type = self.quad_generator.type_stack.pop()
-                printables.append((value, value_type))
+                printables.append((value_address, value_type))
             # Si es una cadena, es una constante literal
             elif printable.CTE_STRING():
                 value = printable.CTE_STRING().getText()
-                printables.append((value, Type.VOID))  # Las cadenas no tienen un tipo específico en BabyDuck
+                # Obtener dirección para la constante string
+                value_address = self.quad_generator.get_constant_address(value)
+                printables.append((value_address, Type.VOID))  # Las cadenas no tienen un tipo específico en BabyDuck
         
         return printables
         
@@ -409,15 +517,19 @@ class SemanticAnalyzer(BabyDuckVisitor):
         return None
         
     def visitCondition(self, ctx: BabyDuckParser.ConditionContext):
-        # Verificar que la expresión de la condición sea booleana
+        # Visitar la expresión de la condición
         expr_type = self.visit(ctx.expresion())
         
+        # Para condiciones, se espera que el tipo resultante sea "booleano" (representado por Type.VOID)
+        if expr_type != Type.VOID:
+            self.add_error(ctx, f"Se esperaba una expresión booleana en la condición, se encontró {expr_type.name}")
+        
         # Obtener la condición del tope de la pila
-        condition = self.quad_generator.operand_stack.pop()
+        condition_address = self.quad_generator.operand_stack.pop()
         self.quad_generator.type_stack.pop()
         
         # Generar el GOTOF para la condición
-        gotof_index = self.quad_generator.generate_gotof(condition)
+        gotof_index = self.quad_generator.generate_gotof(condition_address)
         self.quad_generator.jump_stack.append(gotof_index)
         
         # Visitar el cuerpo del if
@@ -435,12 +547,18 @@ class SemanticAnalyzer(BabyDuckVisitor):
             # Sacar el GOTOF de la pila de saltos (ya lo completamos)
             self.quad_generator.jump_stack.pop()
             
+            # Añadir el GOTO al final a la pila de saltos
+            self.quad_generator.jump_stack.append(goto_end_index)
+            
             # Visitar el cuerpo del else
             self.visit(ctx.body(1))
             
             # Completar el GOTO al final
             end_quad_index = self.quad_generator.quad_counter
             self.quad_generator.fill_quadruple(goto_end_index, end_quad_index)
+            
+            # Sacar el GOTO de la pila de saltos
+            self.quad_generator.jump_stack.pop()
         else:
             # No hay else, completar el GOTOF para saltar al final
             end_quad_index = self.quad_generator.quad_counter
@@ -456,15 +574,19 @@ class SemanticAnalyzer(BabyDuckVisitor):
         start_index = self.quad_generator.quad_counter
         self.quad_generator.jump_stack.append(start_index)
         
-        # Verificar que la expresión del while sea booleana
+        # Visitar la expresión del while (debe ser "booleana")
         expr_type = self.visit(ctx.expresion())
         
+        # Para condiciones de ciclos, se espera que el tipo resultante sea "booleano"
+        if expr_type != Type.VOID:
+            self.add_error(ctx, f"Se esperaba una expresión booleana en la condición del ciclo, se encontró {expr_type.name}")
+        
         # Obtener la condición del tope de la pila
-        condition = self.quad_generator.operand_stack.pop()
+        condition_address = self.quad_generator.operand_stack.pop()
         self.quad_generator.type_stack.pop()
         
         # Generar el GOTOF para la condición
-        gotof_index = self.quad_generator.generate_gotof(condition)
+        gotof_index = self.quad_generator.generate_gotof(condition_address)
         self.quad_generator.jump_stack.append(gotof_index)
         
         # Visitar el cuerpo del ciclo
@@ -495,7 +617,7 @@ class SemanticAnalyzer(BabyDuckVisitor):
             return Type.ERROR
             
         # Generar ERA para la llamada a función (reserva de espacio)
-        self.quad_generator.add_quadruple(OperatorType.ERA, func_name, None, None)
+        self.quad_generator.generate_era(func_name)
         
         # Verificar los argumentos
         arg_list = ctx.argList()
@@ -522,7 +644,7 @@ class SemanticAnalyzer(BabyDuckVisitor):
                 arg_type = self.visit(expr_ctx)
                 
                 # Obtener el valor del argumento de la pila
-                arg_value = self.quad_generator.operand_stack.pop()
+                arg_address = self.quad_generator.operand_stack.pop()
                 self.quad_generator.type_stack.pop()
                 
                 # Tipo esperado del parámetro
@@ -533,10 +655,10 @@ class SemanticAnalyzer(BabyDuckVisitor):
                     self.add_error(expr_ctx, f"Tipo incompatible en argumento {i+1}: esperaba {param_type.name}, recibió {arg_type.name}")
                 
                 # Generar cuádruplo para el parámetro
-                self.quad_generator.add_quadruple(OperatorType.PARAM, arg_value, None, f"param{i+1}")
+                self.quad_generator.generate_param(arg_address, i+1)
                     
         # Generar GOSUB para la llamada a función
-        self.quad_generator.add_quadruple(OperatorType.GOSUB, func_name, None, func.start_address)
+        self.quad_generator.generate_gosub(func_name, func.start_address)
         
         return func.type
         
