@@ -6,6 +6,7 @@ Compilador para el lenguaje BabyDuck
 
 import sys
 import os
+import pickle
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
 from antlr4.error.Errors import ParseCancellationException
@@ -182,6 +183,28 @@ def print_memory_map(memory_manager):
     else:
         print("No hay constantes registradas")
 
+def generate_obj_file(output_file, symbol_table, quadruples, memory_manager):
+    """
+    Genera un archivo de objetos para la máquina virtual
+    """
+    try:
+        # Crear diccionario con la información necesaria
+        obj_data = {
+            'symbol_table': symbol_table,
+            'quadruples': quadruples,
+            'constant_map': memory_manager.constant_map
+        }
+        
+        # Guardar en archivo binario
+        with open(output_file, 'wb') as f:
+            pickle.dump(obj_data, f)
+            
+        print(f"\nArchivo de objetos generado: {output_file}")
+        return True
+    except Exception as e:
+        print(f"\nError al generar archivo de objetos: {e}")
+        return False
+
 def main(argv):
     # Verificar argumentos
     if len(argv) > 1:
@@ -222,10 +245,6 @@ def main(argv):
         
         # Si llegamos aquí, no hubo errores sintácticos
         print("Análisis sintáctico exitoso.")
-        
-        # Mostrar el árbol sintáctico
-        #print("\n=== ÁRBOL SINTÁCTICO ===")
-        #print_parse_tree(tree, parser)
 
         # Realizar análisis semántico
         print("\n=== ANÁLISIS SEMÁNTICO ===")
@@ -259,6 +278,12 @@ def main(argv):
                 
                 print(f"\nTotal de cuádruplos generados: {len(quadruples)}")
                 print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.memory_manager.temp_counter}")
+                
+                # Generar archivo de objetos si la compilación fue exitosa
+                if len(argv) > 1:
+                    output_file = os.path.splitext(input_file)[0] + ".bdobj"
+                    generate_obj_file(output_file, symbol_table, quadruples, 
+                                     semantic_analyzer.quad_generator.memory_manager)
                 
         except SemanticError as e:
             print(f"Error semántico: {str(e)}")

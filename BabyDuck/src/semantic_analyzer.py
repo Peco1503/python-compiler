@@ -31,25 +31,29 @@ class SemanticAnalyzer(BabyDuckVisitor):
         program_name = ctx.ID().getText()
         self.symbol_table.add_function(program_name, Type.VOID)
         
-        # Añadir función main implícitamente
+        # Añadir función main implícitamente - DEBE HACERSE AQUÍ
         self.symbol_table.add_function("main", Type.VOID)
         
-        # Visitar las declaraciones de variables y funciones
+        # Procesar variables globales si existen
         if ctx.vars_():
             self.visit(ctx.vars_())
-            
+        
+        # Generar cuádruplo de GOTO para saltar a main (lo completaremos después)
+        main_jump = self.quad_generator.generate_goto()
+        
+        # Procesar las declaraciones de funciones si existen
         if ctx.funcs():
             self.visit(ctx.funcs())
-
-        # Generar cuádruplo de GOTO para saltar a main
-        main_jump = self.quad_generator.generate_goto()
-            
+        
         # Cambiar a la función main para el cuerpo principal
         self.symbol_table.current_function = "main"
         self.quad_generator.set_current_function("main")
         
         # Guardar la dirección de inicio de main
         main_start = self.quad_generator.quad_counter
+        
+        # Ahora podemos acceder a la función main porque ya la hemos añadido
+        self.symbol_table.functions["main"].start_address = main_start
         
         # Completar el cuádruplo de salto a main
         self.quad_generator.fill_quadruple(main_jump, main_start)
@@ -149,6 +153,10 @@ class SemanticAnalyzer(BabyDuckVisitor):
         func = self.symbol_table.functions[func_name]
         func.local_vars_count = len(func.vars_table)
         func.temp_vars_count = self.quad_generator.memory_manager.temp_counter
+
+        if func.start_address != func_start:
+            print(f"Advertencia: La direccion de inicio para la funcion '{func_name}' cambió de {func_start} a {func.start_address}")
+            func.start_address = func_start
         
         return None
     

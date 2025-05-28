@@ -1,0 +1,47 @@
+program funciones;
+var 
+  a, b, c : int;
+  f : float;
+
+void suma(x : int, y : int)
+var
+  resultado : int;
+{
+  resultado = x + y;
+  print("La suma es: ", resultado);
+};
+
+void factorial(n : int)
+var
+  i, fact : int;
+{
+  fact = 1;
+  i = 1;
+  
+  while (i <= n) do {
+    fact = fact * i;
+    i = i + 1;
+  };
+  
+  print("El factorial de ", n, " es: ", fact);
+};
+
+main
+{
+  a = 5;
+  b = 7;
+  c = 10;
+  f = 3.14;
+  
+  print("Programa de prueba de funciones");
+  print("-------------------------------");
+  
+  suma(a, b);
+  suma(a, c);
+  
+  factorial(c);
+  
+  print("Valores finales:");
+  print("a: ", a, ", b: ", b, ", c: ", c);
+}
+end

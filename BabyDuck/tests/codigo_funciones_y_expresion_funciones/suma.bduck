@@ -1,0 +1,19 @@
+program simple;
+var a, b, c : int;
+
+void suma(x : int, y : int)
+var resultado : int;
+{
+    resultado = x + y;
+    print("La suma es: ", resultado);
+};
+
+main
+{
+    a = 5;
+    b = 7;
+    print("a=", a, ", b=", b);
+    suma(a, b);
+    print("Después de suma: a=", a, ", b=", b);
+}
+end
