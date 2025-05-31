@@ -166,7 +166,7 @@ class VirtualMachine:
             quad = self.quadruples[self.instruction_pointer]
             
             # Para debug: imprimir el cuádruplo actual
-            print(f"[IP={self.instruction_pointer}] Ejecutando: {quad}")
+            # print(f"[IP={self.instruction_pointer}] Ejecutando: {quad}")
             
             # Ejecutar la operación correspondiente
             self.execute_quadruple(quad)
@@ -183,7 +183,7 @@ class VirtualMachine:
         operator = quad.operator
 
         # Para debugging - imprimir valores importantes
-        print(f"[DEBUG] Executing: {quad}")
+        # print(f"[DEBUG] Executing: {quad}")
         
         # Operaciones aritméticas y relacionales
         if operator in [OperatorType.PLUS, OperatorType.MINUS, OperatorType.MULT, OperatorType.DIV,
@@ -324,20 +324,20 @@ class VirtualMachine:
             
         # En ENDFUNC, guarda el estado de la memoria antes de limpiarla
         elif operator == OperatorType.ENDFUNC:
-            print("\n[DEBUG] Memoria antes de ENDFUNC:")
-            for addr in range(3000, 3003):
-                val = self.memory.get_value(addr)
-                print(f"  Dirección {addr}: {val}")
+            # print("\n[DEBUG] Memoria antes de ENDFUNC:")
+            # for addr in range(3000, 3003):
+            #     val = self.memory.get_value(addr)
+            #     print(f"  Dirección {addr}: {val}")
             # Restaurar contexto anterior
             if self.call_stack:
                 # Obtener activation record
                 ar = self.call_stack.pop()
                 
                 # DEBUG: Imprimir estado de memoria antes de limpiar
-                print("\n[DEBUG] Memoria antes de ENDFUNC:")
-                for addr in range(3000, 3003):
-                    val = self.memory.get_value(addr)
-                    print(f"  Dirección {addr}: {val}")
+                # print("\n[DEBUG] Memoria antes de ENDFUNC:")
+                # for addr in range(3000, 3003):
+                #     val = self.memory.get_value(addr)
+                #     print(f"  Dirección {addr}: {val}")
 
                 self.memory.clear_local_memory()
                 
@@ -353,17 +353,18 @@ class VirtualMachine:
             else:
                 # Si la pila esta vacia, es el ENDFUNC de main
                 # En este caso simplemente seguimos adelante
-                print("[INFO] Finalizando programa (ENDFUNC de main)")
-            
+                # print("[INFO] Finalizando programa (ENDFUNC de main)")
+                pass
+
             # DEBUG: Imprimir estado de memoria después de limpiar/restaurar
-            print("\n[DEBUG] Memoria después de ENDFUNC:")
-            for addr in range(3000, 3003):
-                val = self.memory.get_value(addr)
-                print(f"  Dirección {addr}: {val}")
+            # print("\n[DEBUG] Memoria después de ENDFUNC:")
+            # for addr in range(3000, 3003):
+            #     val = self.memory.get_value(addr)
+            #     print(f"  Dirección {addr}: {val}")
         
         elif operator == OperatorType.PARAM:
             value = self.memory.get_value(quad.left_operand)
-            print(f"[DEBUG] PARAM - Dirección {quad.left_operand} tiene valor: {value}")
+            # print(f"[DEBUG] PARAM - Dirección {quad.left_operand} tiene valor: {value}")
 
 
 def load_obj_file(file_path):

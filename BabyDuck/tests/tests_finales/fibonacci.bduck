@@ -1,0 +1,34 @@
+program fibonacci_sequence;
+var
+    n, fib1, fib2, siguiente, contador : int;
+
+main
+{
+    n = 10;
+    fib1 = 0;
+    fib2 = 1;
+    contador = 0;
+    
+    print("Secuencia de Fibonacci");
+    print("Los primeros ", n, " numeros son:");
+    
+    if (n >= 1) {
+        print("F(", contador, ") = ", fib1);
+        contador = contador + 1;
+    };
+    
+    if (n >= 2) {
+        print("F(", contador, ") = ", fib2);
+        contador = contador + 1;
+    };
+    
+    while (contador < n) do {
+        siguiente = fib1 + fib2;
+        print("F(", contador, ") = ", siguiente);
+        
+        fib1 = fib2;
+        fib2 = siguiente;
+        contador = contador + 1;
+    };
+}
+end
