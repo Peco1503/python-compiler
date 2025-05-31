@@ -1,0 +1,32 @@
+program factorial_improved;
+var
+    n, fact, i : int;
+
+main
+{
+    n = 5;
+    
+    // Validación
+    if (n < 0) {
+        print("Error: No se puede calcular factorial de numero negativo");
+    } else {
+        fact = 1;
+        i = 1;
+        
+        print("Calculando ", n, "!");
+        
+        // Caso especial para 0!
+        if (n == 0) {
+            print("0! = 1");
+        } else {
+            while (i <= n) do {
+                fact = fact * i;
+                print(i, "! = ", fact);
+                i = i + 1;
+            };
+        };
+        
+        print("Resultado final: ", n, "! = ", fact);
+    };
+}
+end
