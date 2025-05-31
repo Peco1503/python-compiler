@@ -1,0 +1,36 @@
+program fibonacci_optimized_v1;
+var
+    n : int;
+
+void calcular_fibonacci(limite : int)
+var
+    fib1, fib2, temp, contador : int;
+{
+    
+    if (limite >= 1) {
+        fib1 = 0;
+        print("F(0) = ", fib1);
+    };
+    
+    if (limite >= 2) {
+        fib2 = 1;
+        print("F(1) = ", fib2);
+    };
+    
+    contador = 2;
+    while (contador < limite) do {
+        temp = fib1 + fib2;
+        print("F(", contador, ") = ", temp);
+        
+        fib1 = fib2;
+        fib2 = temp;
+        contador = contador + 1;
+    };
+};
+
+main
+{
+    n = 10;
+    calcular_fibonacci(n);
+}
+end

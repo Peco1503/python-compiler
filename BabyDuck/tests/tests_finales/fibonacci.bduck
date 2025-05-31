@@ -9,9 +9,6 @@ main
     fib2 = 1;
     contador = 0;
     
-    print("Secuencia de Fibonacci");
-    print("Los primeros ", n, " numeros son:");
-    
     if (n >= 1) {
         print("F(", contador, ") = ", fib1);
         contador = contador + 1;

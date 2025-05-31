@@ -24,46 +24,49 @@ class SemanticAnalyzer(BabyDuckVisitor):
         self.errors.append(f"Error semántico en línea {line}:{column} - {message}")
 
     def visitPrograma(self, ctx: BabyDuckParser.ProgramaContext):
-        # Establecer la función global
-        self.quad_generator.set_current_function("global")
-        
-        # Añadir el programa como una "función" global
+        # Establecer el contexto global para variables globales
         program_name = ctx.ID().getText()
         self.symbol_table.add_function(program_name, Type.VOID)
-        
+        self.symbol_table.current_function = program_name  # Establecer como función actual para variables globales
+        self.quad_generator.set_current_function("global")
+
         # Añadir función main implícitamente - DEBE HACERSE AQUÍ
+        # Guardar el contexto actual antes de agregar main
+        saved_context = self.symbol_table.current_function
         self.symbol_table.add_function("main", Type.VOID)
-        
-        # Procesar variables globales si existen
+        # Restaurar el contexto para procesar variables globales
+        self.symbol_table.current_function = saved_context
+
+        # Procesar variables globales si existen (en contexto del programa)
         if ctx.vars_():
             self.visit(ctx.vars_())
-        
+
         # Generar cuádruplo de GOTO para saltar a main (lo completaremos después)
         main_jump = self.quad_generator.generate_goto()
-        
+
         # Procesar las declaraciones de funciones si existen
         if ctx.funcs():
             self.visit(ctx.funcs())
-        
+
         # Cambiar a la función main para el cuerpo principal
         self.symbol_table.current_function = "main"
         self.quad_generator.set_current_function("main")
-        
+
         # Guardar la dirección de inicio de main
         main_start = self.quad_generator.quad_counter
-        
+
         # Ahora podemos acceder a la función main porque ya la hemos añadido
         self.symbol_table.functions["main"].start_address = main_start
-        
+
         # Completar el cuádruplo de salto a main
         self.quad_generator.fill_quadruple(main_jump, main_start)
-        
+
         # Visitar el cuerpo principal
         self.visit(ctx.body())
-        
+
         # Generar cuádruplo de fin de programa (ENDFUNC para main)
         self.quad_generator.generate_endfunc()
-        
+
         # Retornar tanto la tabla de símbolos como los cuádruplos generados
         return self.symbol_table, self.quad_generator.quadruples
     
@@ -84,7 +87,13 @@ class SemanticAnalyzer(BabyDuckVisitor):
 
         # Obtener los IDs y añadir cada variable a la tabla
         id_list = ctx.idList()
-        is_global = self.symbol_table.current_function == "programa"
+
+        # Determinar si es global: las variables son globales si no estamos en main ni en una función específica
+        # Las variables globales se declaran cuando current_function es el nombre del programa
+        current_func = self.symbol_table.current_function
+
+        # Simplificar: es global si no estamos en main
+        is_global = current_func != "main"
 
         # Mapear Type a DataType para la asignación de memoria
         data_type = DataType.INT if var_type == Type.INT else DataType.FLOAT
@@ -95,18 +104,18 @@ class SemanticAnalyzer(BabyDuckVisitor):
             if not self.symbol_table.add_variable(var_name, var_type, is_global):
                 self.add_error(ctx, f"La variable '{var_name}' ya ha sido declarada.")
                 continue
-                
+
             # Asignar dirección virtual a la variable
             address = self.quad_generator.memory_manager.get_address(segment_type, data_type)
-            
+
             # Asociar la variable con su dirección
             self.quad_generator.set_var_address(var_name, address)
-            
+
             # Actualizar la dirección en la tabla de símbolos
             var = self.symbol_table.lookup_variable(var_name)
             if var:
                 var.address = address
-        
+
         return None
     
     def visitFuncs(self, ctx: BabyDuckParser.FuncsContext):
@@ -498,30 +507,36 @@ class SemanticAnalyzer(BabyDuckVisitor):
     def visitPrintableList(self, ctx: BabyDuckParser.PrintableListContext):
         # Lista de elementos imprimibles (valor, tipo)
         printables = []
-        
+
         # Visitar cada elemento imprimible
         for printable in ctx.printable():
-            result = self.visit(printable)
-            
-            # Si es una expresión, su valor está en el tope de la pila
+            # Si es una expresión, procesarla y obtener su valor de la pila
             if printable.expresion():
+                expr_type = self.visit(printable.expresion())
+
+                # Verificar que la pila no esté vacía antes de hacer pop
+                if not self.quad_generator.operand_stack:
+                    self.add_error(printable, "Error interno: pila de operandos vacía al procesar expresión en print")
+                    continue
+
                 value_address = self.quad_generator.operand_stack.pop()
                 value_type = self.quad_generator.type_stack.pop()
                 printables.append((value_address, value_type))
+
             # Si es una cadena, es una constante literal
             elif printable.CTE_STRING():
                 value = printable.CTE_STRING().getText()
                 # Obtener dirección para la constante string
                 value_address = self.quad_generator.get_constant_address(value)
                 printables.append((value_address, Type.VOID))  # Las cadenas no tienen un tipo específico en BabyDuck
-        
+
         return printables
-        
+
     def visitPrintable(self, ctx: BabyDuckParser.PrintableContext):
-        # Si es una expresión, verificar su tipo
+        # Este método ya no se usa directamente, la lógica se movió a visitPrintableList
+        # para evitar el doble procesamiento que causaba el error de pila vacía
         if ctx.expresion():
             return self.visit(ctx.expresion())
-        # Si es una cadena, no necesitamos verificar nada
         return None
         
     def visitCondition(self, ctx: BabyDuckParser.ConditionContext):
