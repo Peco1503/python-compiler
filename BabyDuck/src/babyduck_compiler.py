@@ -272,12 +272,12 @@ def main(argv):
                 
                 # Mostrar los cuádruplos generados
                 print_quadruples(quadruples)
-                
+
                 # Mostrar el mapa de memoria
-                print_memory_map(semantic_analyzer.quad_generator.memory_manager)
+                # print_memory_map(semantic_analyzer.quad_generator.memory_manager)
                 
-                print(f"\nTotal de cuádruplos generados: {len(quadruples)}")
-                print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.memory_manager.temp_counter}")
+                #print(f"\nTotal de cuádruplos generados: {len(quadruples)}")
+                #print(f"Total de temporales utilizados: {semantic_analyzer.quad_generator.memory_manager.temp_counter}")
                 
                 # Generar archivo de objetos si la compilación fue exitosa
                 if len(argv) > 1:
