@@ -1,0 +1,43 @@
+program fibonacci;
+var
+    n: int;
+
+void imprimir_numero(contador : int, siguiente: int)
+{
+    print("F(", contador, ") = ", siguiente, " ");
+};
+
+void calcular_fibonacci(n : int)
+var
+    fib1, fib2, contador, siguiente : int;
+{
+    fib1 = 0;
+    fib2 = 1;
+    contador = 0;
+    siguiente = 0;
+
+    if (n >= 1){
+        imprimir_numero(0, fib1);
+    };
+
+    if (n >= 2){
+        imprimir_numero(1, fib2);
+    };
+
+    // Calcular e imprimir F(2) en adelante
+    contador = 2;
+    while (contador < n) do {
+        siguiente = fib1 + fib2;
+        imprimir_numero(contador, siguiente);
+
+        fib1 = fib2;
+        fib2 = siguiente;
+        contador = contador + 1;
+    };
+};
+
+main{
+    n = 10;
+    calcular_fibonacci(n);
+}
+end

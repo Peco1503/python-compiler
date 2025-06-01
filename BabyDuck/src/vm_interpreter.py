@@ -1,15 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Intérprete de la máquina virtual para BabyDuck
-"""
-
 import sys
 import os
 import pickle
 from typing import List, Dict, Any
 
-# Asegurarse de que podemos importar los módulos necesarios
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from quad_generator import OperatorType, Quadruple
@@ -173,8 +166,6 @@ class VirtualMachine:
             
             # Avanzar al siguiente cuádruplo (a menos que sea un salto)
             self.instruction_pointer += 1
-            
-        print("\nEjecución finalizada.")
     
     def execute_quadruple(self, quad: Quadruple):
         """
@@ -416,8 +407,8 @@ def main():
     )
     
     # Ejecutar programa
-    print(f"Ejecutando programa desde '{obj_file}'...")
-    print("=" * 50)
+    #print(f"Ejecutando programa desde '{obj_file}'...")
+    #print("=" * 50)
     try:
         vm.execute()
     except Exception as e:

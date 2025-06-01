@@ -1,18 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Máquina virtual para el lenguaje BabyDuck
-
-Este módulo implementa una máquina virtual capaz de ejecutar
-los cuádruplos generados por el compilador BabyDuck.
-"""
-
 import sys
 import os
 from enum import Enum
 from typing import List, Dict, Any, Tuple, Optional
 
-# Importar módulos necesarios (asegurarse que estén en el PYTHONPATH)
 from memory_manager import SegmentType, DataType
 from quad_generator import OperatorType, Quadruple
 from symbol_table import SymbolTable, Function, Variable, Type
@@ -224,7 +214,7 @@ class VirtualMachine:
         self.instruction_pointer = 0
         self.constant_map = constant_map
         self.symbol_table = symbol_table
-        self.call_stack = []  # Pila para almacenar activation records
+        self.call_stack = []  # Pila para almacenar el contexto de la funcion (dir retorno, parametros, memoria)
         self.current_era = None  # ERA actual en preparación
         self.debug_mode = debug_mode  # Modo de depuración
         
