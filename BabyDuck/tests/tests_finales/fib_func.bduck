@@ -2,6 +2,10 @@ program fibonacci_optimized_v1;
 var
     n : int;
 
+void imprmir_numero(contador: int, temp: int){
+    print("F(", contador, ") = ", temp);
+};
+
 void calcular_fibonacci(limite : int)
 var
     fib1, fib2, temp, contador : int;
@@ -20,7 +24,8 @@ var
     contador = 2;
     while (contador < limite) do {
         temp = fib1 + fib2;
-        print("F(", contador, ") = ", temp);
+        imprmir_numero(contador, temp);
+        //print("F(", contador, ") = ", temp);
         
         fib1 = fib2;
         fib2 = temp;
